@@ -1,0 +1,269 @@
+NyxOS — Copyright (c) 2026 NyxOS contributors — MIT
+
+NyxOS is licensed under the MIT License (see LICENSE). This file lists third-party projects whose code,
+patterns, prompts, data or models NyxOS adopts or uses, with their copyright and license. Files that contain
+adopted or adapted code also name their source in a header comment.
+
+Unless stated otherwise, "pattern" means an idea, algorithm or structure was re-implemented in our own
+TypeScript; no source code was copied verbatim. The MIT License text that applies to all MIT-licensed items is
+reproduced at the end of the first part.
+
+===================================================================================================
+1. Adopted code, patterns and prompts
+===================================================================================================
+
+Claude Code Agent Monitor — https://github.com/hoangsonww/Claude-Code-Agent-Monitor
+Copyright (c) 2026 - Now, Son Nguyen — MIT
+Patterns in packages/shared/src/parse/:
+- Claude: count token usage only once per message ID (one reply spans several JSONL lines).
+- Codex: tokens from the last `token_count.total_token_usage`; cache reads and writes are subtracted from
+  input; titles from Codex's own renaming (`session_index.jsonl`).
+
+ccusage — https://github.com/ccusage/ccusage — MIT
+- Cost calculation (tokens per type × price per token; cache writes with 1-hour TTL at the higher rate) and
+  the price / context-window values follow ccusage (packages/shared/src/usage.ts), checked against real
+  `ccusage daily --json` output.
+
+LiteLLM — https://github.com/BerriAI/litellm — MIT
+- The price and context-window data come from its dataset `model_prices_and_context_window.json`
+  (data values only, no code) — packages/shared/src/usage.ts.
+
+Hermes Agent (Nous Research) — https://github.com/NousResearch/hermes-agent (commit c953b2a)
+Copyright (c) 2025 Nous Research — MIT
+Patterns, prompts and rules translated, shortened and ported to TypeScript:
+- apps/server/src/nyx/memory.ts: memory tool with a character budget per area, atomic batches (budget checked
+  on the final result), unique-match search, usage display, at most 3 failed attempts per run, frozen prompt
+  snapshot (tools/memory_tool.py, tools/memory_tool_store.py, agent/prompt_builder.py build_memory_guidance)
+- apps/server/src/nyx/review.ts: prompt and triggers of the background learning review, history summary
+  (agent/background_review.py)
+- apps/server/src/nyx/sessionSearch.ts: shapes of chat search, relative time filters, down-ranking of automatic
+  threads (tools/session_search_tool.py)
+- apps/server/src/nyx/todo.ts: task list schema, merge by id, revision, re-injecting open items
+  (tools/todo_tool.py)
+- apps/server/src/nyx/schedules.ts: cron hint with [SILENT]/[CRON_FAILURE], wake gate, next_run_at before the
+  run (cron/scheduler_prompt.py, cron/scheduler.py, tools/cronjob_tools.py)
+- apps/server/src/nyx/compaction.ts: clearing tool output, section schema, rolling updates, hand-over prefix,
+  emergency summary (agent/context_compressor.py)
+- apps/server/src/nyx/speak.ts: Markdown → speech text, spelling out symbols (tools/tts_text_normalize.py),
+  adapted for German
+- apps/server/src/nyx/threats.ts: threat patterns and invisible characters (tools/threat_patterns.py),
+  extended with German forms
+- apps/server/src/nyx/prompt.ts: per-turn voice hint (tools/voice_live.py VOICE_LIVE_TURN_NOTE);
+  apps/server/src/nyx/tools.ts: tool descriptions
+- Personality presets (hermes_cli/personality.py): built-in presets are fixed, custom presets are added
+  → `BUILTIN_NYX_PRESETS` in packages/shared/src/nyx-persona.ts and the table `nyx_presets`.
+- Skill library (tools/skill_usage.py, tools/skill_ledger.py): usage count per skill, history with SHA-256,
+  "pinned" protects from suggestions → packages/shared/src/skills.ts, apps/server/src/skills/usage.ts.
+- Learning loop (background_review.py): signals for failed call / cancellation / correction and the writing
+  rules for skill jobs, translated → apps/server/src/skills/usage.ts, suggest.ts, jobs.ts. Unlike Hermes,
+  NyxOS never changes a skill on its own: suggestions are applied only after the user approves them.
+- Telegram (gateway/pairing.py, tools/voice_live.py): pairing code (8 characters without 0/O/1/I, valid 1 h,
+  salted SHA-256 hash instead of the code, constant-time comparison, lock after 5 failed attempts, tolerant of
+  spaces and case) → apps/server/src/telegram/pairing.ts; per-turn voice hint (translated)
+  → apps/server/src/telegram/nyx.ts; approval buttons `<prefix>:<choice>:<id>`, voice mode per chat.
+
+OpenClaw — https://github.com/openclaw/openclaw
+Copyright (c) 2026 OpenClaw Foundation — MIT
+- Personality and user profile (docs/reference/templates/SOUL.md, USER.md, IDENTITY.md): split into
+  personality (soul, character, tone) and user profile with a character budget; the stance of the default
+  personality ("really help instead of pleasing", "have an opinion", "look it up yourself first", "be a guest
+  in other people's projects") as our own wording. From src/agents/system-prompt-context-files.ts: personality
+  and profile apply unless higher rules say otherwise. → apps/server/src/nyx/persona.ts,
+  apps/server/src/nyx/personaDefault.ts, packages/shared/src/nyx-persona.ts.
+- apps/server/src/nyx/prompt.ts: sections "Execution Bias" and "Promised Work" (src/agents/system-prompt.ts,
+  promised-work-prompt.ts), "offer a routine"; order of stable prompt parts.
+- apps/server/src/nyx/schedules.ts, apps/server/src/nyx/cron.ts: active hours (docs/gateway/heartbeat.md
+  activeHours), cron expressions as wall-clock time (src/agents/tools/cron-tool.ts), standing orders
+  (docs/automation/standing-orders.md).
+- apps/server/src/nyx/threats.ts: wrapping external text with a random boundary
+  (src/security/external-content.ts wrapExternalContent).
+- apps/server/src/nyx/memory.ts: provenance per memory (docs/concepts/memory-provenance.md);
+  apps/server/src/nyx/todo.ts: "at most one step in progress" (src/agents/tools/progress-card-tool.ts);
+  typed image/link tool results (src/canvas/widget-tool.ts);
+  apps/bridge/src/simulator/screenshot.ts: the bridge announces commands, the server invokes them
+  (src/node-host/invoke.ts).
+- Telegram (extensions/telegram/src/{approval-callback-data,format-html,rich-plain-fallback,sequential-key}.ts,
+  src/pairing/pairing-store.ts, src/security/external-content.ts): `TELEGRAM_CALLBACK_DATA_MAX_BYTES = 64` with
+  a versioned prefix and short-ID fallback → apps/server/src/telegram/callbacks.ts; `escapeTelegramHtml`,
+  `PARSE_ERR_RE` (HTML with plain-text fallback), 4000-character limit → apps/server/src/telegram/format.ts;
+  alphabet and `crypto.randomInt` of the pairing code; `/stop` in its own lane, batching input for 300 ms,
+  acknowledging buttons immediately, menus edit the same message, status reactions, command menu only on
+  change, fencing of external content (deliberately short) → apps/server/src/telegram/service.ts, format.ts
+  `wrapUntrusted`.
+
+ClawHub (OpenClaw) — MIT
+- src/components/SkillCard.tsx, SkillDetailTabs.tsx, SkillDiffCard.tsx: layout of the skill tile and the large
+  view (content · usage · history with diff · files) → apps/web/src/features/skills/.
+
+adewaskar/jarvis — https://github.com/adewaskar/jarvis (commit 1c4016a)
+Copyright (c) 2026 Aditya Dewaskar — MIT
+- bridge/server.mjs (`SYSTEM_PROMPT`): rules for spoken answers (short first sentence, no Markdown, numbers as
+  spoken, no filler words) as our own wording → apps/server/src/nyx/personaDefault.ts, channel "voice" in
+  `buildPersona` (apps/server/src/nyx/persona.ts).
+- Code adopted and adapted (source named in each file's header comment):
+  - src/lib/vad.ts (energy VAD: noise floor, threshold ×2.6, hysteresis, 110/650 ms, guard, recording with
+    pre-roll) → apps/web/src/features/nyx/voice/vadGate.ts (as a pure state machine) and
+    apps/web/src/features/nyx/voice/vad.ts (microphone / recorder); `startVad` (noise floor, pre-roll
+    recording, hysteresis, guard, tuning values) → apps/web/src/features/nyx/tab/voice/mic.ts (adapted:
+    messages, push-to-talk, band levels, pause in hidden tabs).
+  - src/lib/tts.ts `createSpeaker` (sentence queue, one sentence ahead, shared AudioContext, `onpause`,
+    cancel) and `shape` → apps/web/src/features/nyx/voice/speaker.ts, apps/web/src/features/nyx/voice/chunker.ts
+    (engine replaced by `/api/nyx/voice/speak`, German abbreviations new) and
+    apps/web/src/features/nyx/tab/voice/speaker.ts (push/end/cancel, `pump`, `prime`; new: "heard" state).
+  - src/lib/voice.ts `holdFor`, `makeAssembler`, `isEcho`, SELF_GUARD → apps/web/src/features/nyx/voice/turn.ts
+    (plus `SELF_GUARD_MS` and Unicode word boundaries), apps/web/src/features/nyx/useNyxVoiceLoop.ts (German
+    word lists, umlauts).
+- Patterns only (no code): src/App.tsx / voice.ts (turn counter, barge-in, segment queue)
+  → apps/web/src/features/nyx/tab/useNyxVoiceLoop.ts; src/scene/Scene.tsx ("drive" object instead of React
+  state, tempo per phase) → apps/web/src/features/nyx/tab/NeuralNetFull.tsx; src/scene/Core.tsx (glowing core
+  as a billboard with a ring; own, simplified version without noise, waves and arcs new)
+  → apps/web/src/features/nyx/tab/net3d/shaders.ts.
+
+elevenlabs/ui — https://github.com/elevenlabs/ui (commit 23c31bd)
+Copyright (c) 2025 Eleven Labs Inc. — MIT
+- registry/elevenlabs-ui/ui/bar-visualizer.tsx (`normalizeDb`, band split)
+  → apps/web/src/features/nyx/tab/voice/level.ts.
+- registry/elevenlabs-ui/ui/orb.tsx (synthetic target values per state), as a pattern
+  → apps/web/src/features/nyx/tab/NeuralNetFull.tsx.
+
+orb-ui — https://github.com/alexanderqchen/orb-ui (commit af5f55c)
+Copyright (c) 2026 Alexander Chen — MIT
+- src/adapters/audio-level.ts (`followEnvelope`, attack 100 ms / release 400 ms)
+  → apps/web/src/features/nyx/tab/voice/level.ts.
+
+claude-code-router — https://github.com/musistudio/claude-code-router — MIT
+- Pattern only, no code: "one format inside, translate per provider" and routing / fallback behind one
+  interface → apps/server/src/models/chat.ts, apps/server/src/haiku/apiEngine.ts.
+
+OpenJarvis (Stanford) — https://github.com/open-jarvis/OpenJarvis — Apache-2.0
+- Rule only, no code: "success brief, failure as a fact" for the voice persona
+  → apps/server/src/nyx/personaDefault.ts.
+- Rule only, no code: "same tool call ≥ 3 times = loop" (agents/loop_guard.py)
+  → apps/web/src/features/nyx/tab/panels/ContextPanel.tsx.
+
+claude-plugins-official — https://github.com/anthropics/claude-plugins-official
+Copyright Anthropic, PBC — Apache-2.0
+- external_plugins/telegram/server.ts, adopted and adapted in apps/server/src/telegram/: `chunk()` (split at
+  paragraph/line/space → format.ts `chunkText`), `safeName()`, `bot.catch` so polling keeps running, restart
+  loop with backoff and 409 detection (service.ts `pollLoop`), photo download via `getFile`, button handler
+  with permission check before the action.
+
+---------------------------------------------------------------------------------------------------
+Libraries used as npm dependencies (not copied into this repository)
+---------------------------------------------------------------------------------------------------
+
+- force-graph (2D graph, canvas) — https://github.com/vasturiano/force-graph
+  Copyright (c) 2017 Vasco Asturiano — MIT
+- three.js (3D view, WebGL, including OrbitControls) — https://github.com/mrdoob/three.js
+  Copyright © 2010-2026 three.js authors — MIT
+- d3-force-3d (3D force simulation in a web worker; also the synchronous 3D layout in
+  apps/web/src/features/nyx/tab/net3d/layout3d.ts) — https://github.com/vasturiano/d3-force-3d
+  Copyright (c) 2017 Vasco Asturiano — MIT
+- d3-force (force simulation in a web worker) — https://github.com/d3/d3-force
+  Copyright 2010-2021 Mike Bostock — ISC
+- grammY (Telegram bot framework) — https://github.com/grammyjs/grammY
+  Copyright (c) 2021-2024 KnorpelSenf — MIT (chosen instead of python-telegram-bot, which is LGPL-3.0)
+- CodeMirror 6 (@codemirror/state, view, language, commands, search, lang-markdown, lang-javascript,
+  lang-json, lang-css, lang-html, lang-python, lang-yaml, legacy-modes) — text editor with line numbers and
+  highlighting (apps/web/src/features/finder/CodeEditor.tsx) — https://github.com/codemirror/dev
+  Copyright (C) 2018-2021 by Marijn Haverbeke <marijn@haverbeke.berlin> and others — MIT
+- @lezer/highlight (highlighting tags for CodeMirror) — https://github.com/lezer-parser/highlight
+  Copyright (C) 2018 by Marijn Haverbeke <marijn@haverbeke.berlin> and others — MIT
+- react-markdown (Markdown as React elements, without raw HTML;
+  apps/web/src/features/finder/MarkdownDocument.tsx) — https://github.com/remarkjs/react-markdown
+  Copyright (c) Espen Hovlandsdal — MIT
+- remark-gfm (tables, task lists, strikethrough in Markdown) — https://github.com/remarkjs/remark-gfm
+  Copyright (c) Titus Wormer <tituswormer@gmail.com> — MIT
+
+---------------------------------------------------------------------------------------------------
+License texts
+---------------------------------------------------------------------------------------------------
+
+The MIT License text below applies to every MIT-licensed item above.
+
+ISC (d3-force): "Permission to use, copy, modify, and/or distribute this software for any purpose with or
+without fee is hereby granted, provided that the above copyright notice and this permission notice appear in
+all copies." (provided "as is", without warranty).
+
+Apache-2.0 (claude-plugins-official, OpenJarvis, sherpa-onnx and the Python packages named below):
+https://www.apache.org/licenses/LICENSE-2.0 — provided on an "AS IS" basis, without warranties or conditions
+of any kind.
+
+MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software
+and associated documentation files (the "Software"), to deal in the Software without
+restriction, including without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
+BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+===================================================================================================
+2. Voice container `nyx-voice` (infra/nyx-voice, optional) — dependencies and models
+===================================================================================================
+
+Used only as dependencies or model files; no third-party code is copied into this repository.
+infra/nyx-voice/nyx_voice/engines.py (`PocketTts`) only calls the public interface of Pocket TTS.
+
+Software
+
+- sherpa-onnx (speech recognition and speech output, Python package, pinned 1.13.8) —
+  https://github.com/k2-fsa/sherpa-onnx — Copyright Xiaomi Corporation and contributors — Apache-2.0.
+  The prebuilt model packages come from this project's releases (verified by SHA-256,
+  infra/nyx-voice/nyx_voice/catalog.py).
+- Kyutai Pocket TTS (Python package `pocket-tts`, pinned 3.3.0) — https://github.com/kyutai-labs/pocket-tts —
+  Copyright Kyutai — MIT. The configuration `german.yaml` from the package is rewritten at start with local
+  paths (only the paths are replaced).
+- PyTorch (CPU, pinned 2.13.0) — BSD-3-Clause; safetensors, tokenizers, huggingface-hub, sentencepiece —
+  Apache-2.0; scipy — BSD-3-Clause; einops, pydantic, pyyaml — MIT; numpy, soundfile — BSD-3-Clause; cffi —
+  MIT; pycparser — BSD-3-Clause; other dependencies MIT/BSD/Apache/PSF (full list:
+  infra/nyx-voice/requirements.txt and infra/nyx-voice/requirements-pocket.txt).
+- GPL components, named openly: they run unmodified inside the container only, are never linked with NyxOS
+  code, and NyxOS talks to the service over HTTP only. ffmpeg (Debian package, LGPL/GPL) runs as a separate
+  process to convert audio. sherpa-onnx bundles the pronunciation library espeak-ng (GPL-3.0) for Piper
+  voices; its data (`espeak-ng-data`) ships with the voice packages.
+- Local voice pack (`nyxos voice install`, apps/cli/voice.mjs): nothing of the following is shipped in the
+  release — it is downloaded on the user's computer at install time, checked by SHA-256, and run as separate
+  programs. uv (pinned release binary) — https://github.com/astral-sh/uv — Astral Software Inc. — MIT OR
+  Apache-2.0. Python 3.12 (python-build-standalone, fetched by uv) — PSF License. imageio-ffmpeg (pinned 0.6.0)
+  — https://github.com/imageio/imageio-ffmpeg — BSD-2-Clause; the ffmpeg program it contains is a GPL build
+  and only runs as a separate process to convert audio. Package list with hashes:
+  infra/nyx-voice/requirements-local.txt.
+
+Models (downloaded into a volume at first start, never part of the image)
+
+- Speech recognition "Parakeet TDT 0.6B v3" — NVIDIA — CC-BY-4.0. Attribution: this model is provided by
+  NVIDIA, https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3; ONNX version by sherpa-onnx, unmodified.
+- Pocket TTS weights, German, without voice cloning, including the voice "juergen" — Kyutai — CC-BY-4.0.
+  Attribution: model by Kyutai, https://huggingface.co/kyutai/pocket-tts-without-voice-cloning, revision
+  4e1e0a3e611c51c0b4ed8174fc10f32a54644303, unmodified, verified by SHA-256. Voice cloning is not used.
+- `pocket-en-george`: Pocket TTS weights, English, without voice cloning (languages/english, revision
+  4e1e0a3e) — Kyutai — CC-BY-4.0 — https://huggingface.co/kyutai/pocket-tts-without-voice-cloning. The voice
+  "george" is a recording of VCTK speaker p315 — CC-BY-4.0 (Centre for Speech Technology Research, University
+  of Edinburgh, https://datashare.ed.ac.uk/handle/10283/3443; overview of voice licenses:
+  https://huggingface.co/kyutai/tts-voices). A separate English model, not a multilingual one.
+- Piper voices from rhasspy/piper-voices (run through sherpa-onnx, NOT through the GPL package `piper1-gpl`):
+  - "thorsten" (de_DE, high/medium) and "thorsten_emotional" (medium, speaker "neutral") — dataset CC0
+    (Thorsten-Voice), according to the model cards.
+  - "kerstin" (de_DE, low) — dataset CC0 (dataset-voice-kerstin), according to the model card.
+  - "ramona" (low) and "eva_k" (x_low) — M-AILABS dataset (BSD-like license, commercial use allowed).
+    Attribution: The M-AILABS Speech Dataset,
+    https://www.caito.de/2019/01/03/the-m-ailabs-speech-dataset/.
+  - `en_US-ljspeech-high` (English fallback voice) — LJSpeech dataset, public domain,
+    https://keithito.com/LJ-Speech-Dataset/.
+  - Note: the Piper voices were fine-tuned from an English base voice (lessac/ryan).
+- Deliberately NOT used: "pavoque" (dataset CC-BY-NC-SA, non-commercial), en_US-ryan (dataset CC-BY-NC-SA),
+  en_US-lessac (Blizzard 2013 license, non-commercial), Pocket voices from Expresso/EARS (CC-BY-NC),
+  Chatterbox (too slow on CPU).
+
+Own implementations (no third-party code): the pronunciation lexicon and German numbers/times/dates
+(nyx_voice/text_de.py), English numbers/times/dates (nyx_voice/text_en.py), and the per-sentence language
+choice (nyx_voice/text_lang.py, mirrored by `guessVoiceLanguage` in packages/shared).

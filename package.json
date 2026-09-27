@@ -1,0 +1,35 @@
+{
+  "name": "nyxos",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.6.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "pnpm -r run build",
+    "typecheck": "pnpm -r run typecheck",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "dev": "node scripts/dev.mjs",
+    "package": "node scripts/package.mjs",
+    "check:i18n": "node scripts/check-i18n.mjs",
+    "check:clean": "bash scripts/check-clean.sh",
+    "demo": "node scripts/demo.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.13.6",
+    "eslint": "^10.11.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.70.1",
+    "vitest": "^4.1.11"
+  },
+  "version": "0.1.0",
+  "description": "Operating system for AI agent workflows: sees every Claude Code and Codex session, manages tasks, git and usage, with the assistant Nyx.",
+  "license": "MIT",
+  "nyxos": {
+    "repo": "OWNER/nyxos"
+  }
+}

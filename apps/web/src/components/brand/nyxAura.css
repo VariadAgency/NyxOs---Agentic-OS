@@ -1,0 +1,259 @@
+/* NyxOS-Logo (NyxAura.tsx). Farben nur aus Tokens (--a-nyx + Zustandsfarbe), Tempo über Variablen.
+   Pegel kommt als --nyx-lvl (0–1) und --nyx-rot (Grad) aus features/nyx/voice/levelBus.ts – EINE Schleife für alle.
+   SVG-Elemente drehen/skalieren um den Nutzerraum-Ursprung 0/0 = Mitte (viewBox -50 … 50). */
+/* Farbwechsel gleiten (z. B. orange → grün, wenn die Such-Runde endet) statt zu springen. */
+@property --nyx-mark-tint {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+@property --nyx-mark-mix {
+  syntax: "<percentage>";
+  inherits: true;
+  initial-value: 0%;
+}
+.nyx-mark {
+  --nyx-lvl: 0;
+  --nyx-rot: 0;
+  --nyx-mark-tint: var(--a-nyx);
+  --nyx-mark-mix: 0%;
+  --nyx-mark-ring: color-mix(in srgb, var(--a-nyx), var(--nyx-mark-tint) var(--nyx-mark-mix));
+  --nyx-mark-spin: 26s;
+  --nyx-mark-pulse: 3.4s;
+  --nyx-mark-breathe: 5.6s;
+  --nyx-mark-wave: 4.2s;
+  display: block;
+  flex-shrink: 0;
+  overflow: visible;
+  pointer-events: none;
+  transition:
+    --nyx-mark-tint 450ms var(--a-ease),
+    --nyx-mark-mix 450ms var(--a-ease);
+}
+.nyx-mark g,
+.nyx-mark path,
+.nyx-mark circle {
+  transform-box: view-box;
+  transform-origin: 0 0;
+}
+
+/* Zustände – klare Farbfolge: hört zu blau → denkt rot → Werkzeug orange → antwortet grün → ruht lila.
+   Tokens --a-nyx-* (app.css), dieselben wie Nyx-Tab und 3D-Netz. Der Kern bleibt weiß, der Ring nimmt die Farbe an. */
+.nyx-mark[data-state="listening"] {
+  --nyx-mark-tint: var(--a-nyx-listen);
+  --nyx-mark-mix: 80%;
+  --nyx-mark-breathe: 2.4s;
+  --nyx-mark-wave: 2.2s;
+}
+.nyx-mark[data-state="thinking"] {
+  --nyx-mark-tint: var(--a-nyx-think);
+  --nyx-mark-mix: 80%;
+  --nyx-mark-spin: 6s;
+  --nyx-mark-pulse: 1.6s;
+}
+.nyx-mark[data-state="speaking"] {
+  /* Langsam grün (NYX_SPEAK_BLEND_MS), die Such-Runde ist davor schon zu Ende gelaufen. */
+  transition:
+    --nyx-mark-tint 1400ms var(--a-ease),
+    --nyx-mark-mix 1400ms var(--a-ease);
+  --nyx-mark-tint: var(--a-nyx-speak);
+  --nyx-mark-mix: 80%;
+  --nyx-mark-pulse: 1.1s;
+  --nyx-mark-wave: 1.6s;
+}
+.nyx-mark[data-state="tool"] {
+  --nyx-mark-tint: var(--a-nyx-tool);
+  --nyx-mark-mix: 85%;
+  --nyx-mark-spin: 9s;
+}
+
+/* Such-Animation (Werkzeug): Punkte aus der Wolke um Nyx werden nacheinander in den Kern gezogen und leuchten auf.
+   Eine Runde = --nyx-seek-round (aus NYX_TOOL_ROUND_MS, visualSequence.ts) – die Anzeige wechselt erst am Rundenende. */
+.nyx-mark__seek {
+  fill: color-mix(in srgb, var(--nyx-mark-ring) 55%, white);
+  opacity: 0.4;
+}
+
+/* ── Farben ── */
+.nyx-mark__stop-deep {
+  stop-color: color-mix(in srgb, var(--nyx-mark-ring) 68%, black);
+  stop-opacity: 0.8;
+}
+.nyx-mark__stop-deeper {
+  stop-color: color-mix(in srgb, var(--nyx-mark-ring) 42%, black);
+  stop-opacity: 0.4;
+}
+.nyx-mark__stop-none {
+  stop-color: color-mix(in srgb, var(--nyx-mark-ring) 20%, black);
+  stop-opacity: 0;
+}
+.nyx-mark__stop-white {
+  stop-color: white;
+}
+.nyx-mark__stop-lav {
+  stop-color: color-mix(in srgb, var(--nyx-mark-ring) 28%, white);
+  stop-opacity: 0.92;
+}
+.nyx-mark__stop-tint {
+  stop-color: var(--nyx-mark-ring);
+  stop-opacity: 0.38;
+}
+.nyx-mark__stop-tint-none {
+  stop-color: var(--nyx-mark-ring);
+  stop-opacity: 0;
+}
+.nyx-mark__ring,
+.nyx-mark__ring-glow,
+.nyx-mark__ring-pale {
+  fill: none;
+  stroke-linejoin: round;
+  stroke: var(--nyx-mark-ring);
+}
+.nyx-mark__ring-glow {
+  opacity: 0.2;
+}
+.nyx-mark__ring-glow--in {
+  opacity: 0.3;
+}
+.nyx-mark__ring-pale {
+  stroke: color-mix(in srgb, var(--nyx-mark-ring) 72%, white);
+  opacity: 0.5;
+}
+.nyx-mark__sat {
+  fill: color-mix(in srgb, var(--nyx-mark-ring) 35%, white);
+  opacity: 0.85;
+}
+.nyx-mark__spark {
+  fill: white;
+  opacity: calc(0.8 + var(--nyx-lvl) * 0.2);
+}
+
+/* ── Pegel (Sprechen): Kern größer/heller, Ring wabert stärker und dreht schneller, Glühen weitet sich ── */
+.nyx-mark__lvl-halo {
+  transform: scale(calc(1 + var(--nyx-lvl) * 0.38));
+  opacity: calc(0.8 + var(--nyx-lvl) * 0.2);
+}
+.nyx-mark__lvl-ring {
+  transform: rotate(calc(var(--nyx-rot) * 1deg)) scale(calc(1 + var(--nyx-lvl) * 0.1));
+}
+.nyx-mark__lvl-core {
+  transform: scale(calc(1 + var(--nyx-lvl) * 0.42));
+}
+.nyx-mark__inner {
+  opacity: calc(1 - var(--nyx-lvl) * 0.75);
+}
+.nyx-mark__wobble {
+  opacity: min(1, calc(var(--nyx-lvl) * 1.5));
+}
+
+/* ── Ruhige Eigenbewegung (nur ohne „Bewegung reduzieren“) ── */
+@media (prefers-reduced-motion: no-preference) {
+  .nyx-mark[data-motion="live"] .nyx-mark__halo {
+    animation: nyx-mark-breathe var(--nyx-mark-breathe) ease-in-out infinite;
+  }
+  .nyx-mark[data-motion="live"] .nyx-mark__core {
+    animation: nyx-mark-pulse var(--nyx-mark-pulse) ease-in-out infinite;
+  }
+  .nyx-mark[data-motion="live"] .nyx-mark__inner {
+    animation: nyx-mark-spin var(--nyx-mark-spin) linear infinite;
+  }
+  .nyx-mark[data-motion="live"] .nyx-mark__inner > path,
+  .nyx-mark[data-motion="live"] .nyx-mark__wobble > path {
+    animation: nyx-mark-wave var(--nyx-mark-wave) ease-in-out infinite;
+  }
+  .nyx-mark[data-motion="live"] .nyx-mark__outer {
+    animation: nyx-mark-spin calc(var(--nyx-mark-spin) * 1.6) linear infinite reverse;
+  }
+  .nyx-mark[data-motion="live"] .nyx-mark__outer > path {
+    animation: nyx-mark-wave calc(var(--nyx-mark-wave) * 1.5) ease-in-out infinite reverse;
+  }
+  .nyx-mark[data-motion="live"] .nyx-mark__wobble {
+    animation: nyx-mark-spin calc(var(--nyx-mark-spin) * 0.4) linear infinite reverse;
+  }
+  .nyx-mark[data-motion="live"] .nyx-mark__sats {
+    animation: nyx-mark-spin calc(var(--nyx-mark-spin) * 1.3) linear infinite;
+  }
+  .nyx-mark[data-motion="live"] .nyx-mark__seek {
+    animation: nyx-mark-seek var(--nyx-seek-round, 1600ms) cubic-bezier(0.55, 0, 0.3, 1) infinite both;
+    animation-delay: calc(var(--nyx-seek-round, 1600ms) * var(--i) / var(--n));
+  }
+}
+
+/* „Bewegung reduzieren“: alles still, der Pegel zeigt sich nur in der Helligkeit. */
+.nyx-mark[data-motion="still"] *,
+.nyx-mark[data-motion="still"] {
+  animation: none !important;
+}
+.nyx-mark[data-motion="still"] .nyx-mark__lvl-halo,
+.nyx-mark[data-motion="still"] .nyx-mark__lvl-ring,
+.nyx-mark[data-motion="still"] .nyx-mark__lvl-core {
+  transform: none;
+}
+.nyx-mark[data-motion="still"] .nyx-mark__inner {
+  opacity: 1;
+}
+.nyx-mark[data-motion="still"] .nyx-mark__wobble {
+  opacity: 0;
+}
+.nyx-mark[data-motion="still"] .nyx-mark__core {
+  opacity: calc(0.82 + var(--nyx-lvl) * 0.18);
+}
+
+/* Punkt wird zum Kern gezogen (scale um die Mitte 0/0), leuchtet auf und taucht außen wieder auf. */
+@keyframes nyx-mark-seek {
+  0% {
+    transform: scale(1);
+    opacity: 0.4;
+  }
+  45% {
+    transform: scale(0.28);
+    opacity: 1;
+  }
+  60% {
+    transform: scale(0.12);
+    opacity: 0;
+  }
+  61%,
+  80% {
+    transform: scale(1);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.4;
+  }
+}
+@keyframes nyx-mark-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes nyx-mark-pulse {
+  0%,
+  100% {
+    transform: scale(0.93);
+  }
+  50% {
+    transform: scale(1.07);
+  }
+}
+@keyframes nyx-mark-breathe {
+  0%,
+  100% {
+    transform: scale(0.9);
+    opacity: 0.72;
+  }
+  50% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+}
+@keyframes nyx-mark-wave {
+  0%,
+  100% {
+    transform: rotate(0deg) scale(1, 1);
+  }
+  50% {
+    transform: rotate(9deg) scale(1.035, 0.965);
+  }
+}

@@ -1,0 +1,50 @@
+name: Feature request
+description: Suggest an idea or improvement for NyxOS
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the idea! Please search existing issues first — maybe someone suggested it already.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Describe the situation in your daily work where NyxOS falls short.
+      placeholder: "When I run three sessions in parallel, I cannot see …"
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: What would you like to happen?
+      description: How should it look and feel? Which tab or part of Nyx would change?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      multiple: true
+      options:
+        - Sessions / terminal
+        - Tasks, ideas, audits, decisions
+        - Git / conflicts
+        - Agents / skills
+        - Usage
+        - Brain
+        - Nyx (chat, briefing, voice, Telegram, night mode)
+        - Installer / nyxos command / updates
+        - Server mode
+        - Translations
+        - Other
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contribution
+      options:
+        - label: I would like to work on this myself.

@@ -1,0 +1,1 @@
+ALTER TABLE "vault_notes" ADD COLUMN "source_path" text;

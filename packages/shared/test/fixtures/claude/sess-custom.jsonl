@@ -1,0 +1,4 @@
+{"parentUuid":null,"isSidechain":false,"type":"user","message":{"role":"user","content":[{"type":"text","text":"Ein sehr langer erster Prompt, der deutlich mehr als achtzig Zeichen hat und deshalb für den Titel gekürzt werden muss, damit die Liste lesbar bleibt"}]},"uuid":"d-0001","timestamp":"2026-09-20T08:00:00.000Z","userType":"external","entrypoint":"cli","cwd":"/Users/alex/projects/App","sessionId":"cccccccc-0000-4000-8000-000000000003","version":"2.1.200","gitBranch":"feat/x"}
+{"type":"summary","summary":"Alte Zusammenfassung","leafUuid":"d-0001"}
+{"type":"custom-title","customTitle":"Mein eigener Name","sessionId":"cccccccc-0000-4000-8000-000000000003"}
+{"type":"ai-title","aiTitle":"KI-Titel","sessionId":"cccccccc-0000-4000-8000-000000000003"}

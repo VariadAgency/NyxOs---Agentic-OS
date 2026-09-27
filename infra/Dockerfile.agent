@@ -1,0 +1,34 @@
+# Container `nyxos-agent`: Haiku-Arbeiter mit dem offiziellen claude-CLI (Max-Plan).
+# Die Anmeldung kommt NUR zur Laufzeit aus infra/.env (Compose reicht sie als Umgebung durch) –
+# nie ins Abbild, nie als Bau-Argument. Keine DB, kein Docker-Socket – nur WebSocket zur API
+# (`/haiku-worker`) und HTTP zur MCP-Brücke (`/haiku-mcp`).
+FROM node:24-alpine AS build
+WORKDIR /src
+RUN corepack enable
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
+COPY packages/shared/package.json packages/shared/
+COPY apps/server/package.json apps/server/
+RUN pnpm install --frozen-lockfile --filter @nyxos/server...
+COPY packages/shared packages/shared
+COPY apps/server apps/server
+RUN pnpm --filter @nyxos/server run build
+
+# glibc-Basis statt Alpine. Das CLI bringt ein natives Programm mit; auf musl bräuchte es
+# Zusatzpakete (libgcc, libstdc++). Arbeiter und MCP-Brücke sind reines JavaScript und laufen überall.
+FROM node:24-bookworm-slim
+# Offizielles CLI aus npm, FEST versioniert (mit genau dieser Version geprüft).
+# Hochzählen nur bewusst hier, nie automatisch.
+ARG CLAUDE_CODE_VERSION=2.1.282
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ca-certificates \
+  && rm -rf /var/lib/apt/lists/* \
+  && npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION} \
+  && npm cache clean --force
+# Bau bricht ab, wenn das Programm hier nicht startet (statt erst beim ersten Haiku-Aufruf).
+RUN claude --version
+WORKDIR /app
+ENV NODE_ENV=production HOME=/home/node NYXOS_HAIKU_HOME=/home/node/haiku
+COPY --from=build /src/apps/server/dist/haiku-worker.js /src/apps/server/dist/haiku-mcp.js ./dist/
+RUN mkdir -p /home/node/haiku /home/node/.claude && chown -R node:node /home/node
+USER node
+CMD ["node", "--enable-source-maps", "dist/haiku-worker.js"]

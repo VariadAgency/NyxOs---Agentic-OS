@@ -1,0 +1,40 @@
+
+ ▐▛███▛█   Claude Code v2.1.282
+▝▜██████▀  Haiku 4.5 · Claude Max
+ ▝▝   ▝▝   /private/tmp/zc-screen-test
+
+
+❯ Run the shell command: touch zc-probe.txt  (use the Bash tool)
+
+  Running 1 shell command…
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+✽ Unraveling… (2s · ↓ 50 tokens · thinking)
+                     tmux detected · scroll with PgUp/PgDn · or add 'set -g mouse on' to ~/.tmux.conf for wheel scroll
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  ⏸ manual mode on · ← 2 agents

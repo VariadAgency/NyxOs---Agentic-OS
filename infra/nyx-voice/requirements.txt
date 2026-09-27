@@ -1,0 +1,9 @@
+# fest versioniert (lokal mit genau diesen Versionen geprüft).
+# sherpa-onnx: Apache-2.0 · numpy: BSD-3 · soundfile: BSD-3 · cffi/pycparser: MIT/BSD · typing_extensions: PSF
+sherpa-onnx==1.13.8
+sherpa-onnx-core==1.13.8
+numpy==2.5.3
+soundfile==0.14.0
+cffi==2.1.1
+pycparser==3.0
+typing_extensions==4.16.0

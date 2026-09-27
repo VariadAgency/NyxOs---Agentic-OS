@@ -1,0 +1,72 @@
+/* Regler der Nyx-Einstellungen. Spur füllt sich in der Farbe des Reglers (`--c`) bis zum Wert (`--p`). */
+.nyx-range {
+  appearance: none;
+  width: 100%;
+  height: 22px;
+  background: transparent;
+  cursor: pointer;
+}
+.nyx-range:focus-visible {
+  outline: none;
+}
+.nyx-range::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--c) 0%, var(--c) var(--p), var(--a-p3) var(--p), var(--a-p3) 100%);
+}
+.nyx-range::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--a-p3);
+}
+.nyx-range::-moz-range-progress {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--c);
+}
+.nyx-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-top: -6px;
+  border-radius: 999px;
+  background: var(--a-ink);
+  border: 3px solid var(--c);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--c) 18%, transparent);
+  transition: transform 120ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 120ms;
+}
+.nyx-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--a-ink);
+  border: 3px solid var(--c);
+}
+.nyx-range:hover::-webkit-slider-thumb,
+.nyx-range:focus-visible::-webkit-slider-thumb {
+  transform: scale(1.12);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--c) 28%, transparent);
+}
+
+/* Beispielsatz: weiches Einblenden bei jeder Änderung. */
+@keyframes nyx-preview-in {
+  from {
+    opacity: 0.35;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.nyx-preview-text {
+  animation: nyx-preview-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .nyx-preview-text {
+    animation: none;
+  }
+  .nyx-range::-webkit-slider-thumb {
+    transition: none;
+  }
+}
