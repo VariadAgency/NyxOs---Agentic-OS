@@ -1,0 +1,196 @@
+/* Nyx in der Leiste – Leiste, Ausgabe-Feld, Nyx-Zentrum (von oben, Glas), Nyx-Cursor, Glow auf
+   Zielen, Klick-Welle. Farben nur aus den Tokens (`--a-nyx`, `--a-nyx-2`). Bewegung aus bei „Bewegung reduzieren“. */
+@layer theme, base, components, utilities;
+
+@layer components {
+  .nyx-glow-target {
+    border-radius: 10px;
+    border: 1.5px solid var(--a-nyx);
+    box-shadow:
+      0 0 0 3px color-mix(in srgb, var(--a-nyx) 22%, transparent),
+      0 0 26px color-mix(in srgb, var(--a-nyx) 55%, transparent);
+    animation: nyx-glow 1.1s ease-in-out infinite;
+  }
+  .nyx-glow-target[data-risk="true"] {
+    border-color: var(--a-wait);
+    box-shadow:
+      0 0 0 3px color-mix(in srgb, var(--a-wait) 22%, transparent),
+      0 0 26px color-mix(in srgb, var(--a-nyx) 55%, transparent);
+  }
+  @keyframes nyx-glow {
+    50% {
+      box-shadow:
+        0 0 0 6px color-mix(in srgb, var(--a-nyx) 12%, transparent),
+        0 0 38px color-mix(in srgb, var(--a-nyx) 70%, transparent);
+    }
+  }
+
+  .nyx-ripple {
+    width: 34px;
+    height: 34px;
+    margin: -17px 0 0 -17px;
+    border-radius: 9999px;
+    border: 2px solid var(--a-nyx-2);
+    animation: nyx-ripple 420ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  }
+  @keyframes nyx-ripple {
+    from {
+      transform: scale(0.3);
+      opacity: 0.95;
+    }
+    to {
+      transform: scale(1.6);
+      opacity: 0;
+    }
+  }
+
+  .nyx-pop {
+    animation: nyx-pop 180ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  @keyframes nyx-pop {
+    from {
+      opacity: 0;
+      transform: translateY(-4px) scale(0.98);
+    }
+  }
+
+  /* ── Nyx-Leiste ── */
+  .nyx-bar {
+    /* Eine ruhige Fläche aus den Tokens (D1: kein Verlauf, kein Farbstich im Grund). */
+    border-color: color-mix(in srgb, var(--a-nyx) 30%, var(--a-line));
+    background: var(--a-p2);
+    transition:
+      border-color 160ms ease-out,
+      background-color 160ms ease-out,
+      box-shadow 220ms ease-out,
+      transform 160ms ease-out;
+  }
+  .nyx-bar:hover {
+    border-color: color-mix(in srgb, var(--a-nyx) 50%, var(--a-line));
+  }
+  .nyx-bar:active {
+    transform: scale(0.985);
+  }
+  .nyx-bar-open,
+  .nyx-bar[data-phase="thinking"],
+  .nyx-bar[data-phase="tool"],
+  .nyx-bar[data-phase="speaking"] {
+    border-color: color-mix(in srgb, var(--a-nyx) 60%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--a-nyx) 14%, transparent);
+  }
+  .nyx-bar[data-phase="talking"] {
+    border-color: color-mix(in srgb, var(--a-ok) 70%, transparent);
+    background: color-mix(in srgb, var(--a-ok) 12%, var(--a-p2));
+    box-shadow:
+      0 0 0 3px color-mix(in srgb, var(--a-ok) 18%, transparent),
+      0 0 22px color-mix(in srgb, var(--a-nyx) 35%, transparent);
+  }
+  .nyx-level-bar {
+    background: var(--a-ok);
+    transform: scaleY(0.2);
+    transition: transform 60ms linear;
+  }
+  /* Der Cursor ist unterwegs: das Symbol leuchtet, bis er zurück ist. */
+  .nyx-bar-net-out {
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--a-nyx) 45%, transparent), 0 0 14px var(--a-nyx);
+  }
+
+  /* ── Nyx-Feld + Ausgabe-Feld hängen unter der Leiste (wie die Mitteilungszentrale am Mac) ──
+     Nur das Feld selbst ist sichtbar: kein Abdunkeln, kein Verschwimmen der Seite, die Seite bleibt bedienbar.
+     Die Fläche ist fast deckend, damit Text darunter nicht durchscheint (statt Glas-Blur). */
+  .nyx-caption,
+  .nyx-center {
+    background: color-mix(in srgb, var(--a-p) 97%, transparent);
+    border: 1px solid color-mix(in srgb, var(--a-nyx) 24%, var(--a-line));
+    box-shadow:
+      0 18px 48px rgba(0, 0, 0, 0.45),
+      0 0 0 0.5px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    transform-origin: 100% 0;
+  }
+  .nyx-caption {
+    animation: nyx-drop 180ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
+  }
+  @keyframes nyx-drop {
+    from {
+      opacity: 0;
+      transform: translateY(-8px) scale(0.98);
+    }
+  }
+  .nyx-center {
+    transition:
+      transform 180ms cubic-bezier(0.2, 0.9, 0.3, 1),
+      opacity 160ms ease-out;
+  }
+  .nyx-center[data-state="closed"] {
+    transform: translateY(-8px) scale(0.98);
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      transform 140ms cubic-bezier(0.4, 0, 1, 1),
+      opacity 120ms ease-in;
+  }
+  .nyx-center[data-dragging="true"] {
+    transition: none;
+  }
+  /* Kachel = eine Fläche; die Farbe trägt der voll gefüllte Symbol-Kreis (keine zweifarbige Kachel, kein Verlauf). */
+  .nyx-tile {
+    background: var(--a-p2);
+    border: 1px solid var(--a-line);
+  }
+  .nyx-tile:hover:not(:disabled) {
+    background: var(--a-p3);
+  }
+  .nyx-tile-on {
+    border-color: color-mix(in srgb, var(--a-ok) 45%, transparent);
+  }
+
+  /* ── Nyx-Cursor: entsteht im Netz-Symbol der Leiste ── */
+  .nyx-bar-cursor {
+    width: 0;
+    height: 0;
+  }
+  .nyx-cursor-glyph {
+    position: absolute;
+    left: -2px;
+    top: -2px;
+    opacity: 0;
+    transform: scale(0.3);
+    transform-origin: 2px 2px;
+    transition:
+      transform 220ms cubic-bezier(0.2, 1.2, 0.3, 1),
+      opacity 160ms ease-out;
+    filter: drop-shadow(0 0 6px color-mix(in srgb, var(--a-nyx) 80%, transparent)) drop-shadow(0 0 14px color-mix(in srgb, var(--a-nyx-2) 45%, transparent));
+  }
+  .nyx-bar-cursor[data-mode="out"] .nyx-cursor-glyph {
+    opacity: 1;
+    transform: scale(1);
+  }
+  .nyx-bar-cursor[data-press="true"] .nyx-cursor-glyph {
+    transform: scale(0.82);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .nyx-cursor-glyph,
+    .nyx-center,
+    .nyx-center[data-state="closed"],
+    .nyx-bar,
+    .nyx-bar:active,
+    .nyx-tile,
+    .nyx-level-bar {
+      transition: none;
+    }
+    .nyx-bar:active {
+      transform: none;
+    }
+    .nyx-center[data-state="closed"] {
+      transform: none;
+    }
+    .nyx-glow-target,
+    .nyx-ripple,
+    .nyx-pop,
+    .nyx-caption {
+      animation: none;
+    }
+  }
+}

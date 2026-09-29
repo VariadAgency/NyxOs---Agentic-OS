@@ -1,0 +1,16 @@
+# Keeps the pinned GitHub Actions (full commit SHAs) and the dependencies up to date.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+  - package-ecosystem: docker
+    directory: /infra
+    schedule:
+      interval: monthly

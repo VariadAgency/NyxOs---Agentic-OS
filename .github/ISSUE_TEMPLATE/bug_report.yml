@@ -1,0 +1,74 @@
+name: Bug report
+description: Something in NyxOS does not work as expected
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Please check the [troubleshooting guide](https://github.com/OWNER/nyxos/blob/main/docs/troubleshooting.md) first.
+        **Security issue?** Do not open a public issue — see [SECURITY.md](https://github.com/OWNER/nyxos/blob/main/SECURITY.md).
+        **Remove anything private** (names, paths, tokens, transcript content) from logs and screenshots.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open …
+        2. Click …
+        3. See …
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: NyxOS version
+      description: Output of `nyxos version`
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Mode
+      options:
+        - Local mode (installed with install.sh)
+        - Server mode (Docker Compose)
+        - Demo (nyxos demo)
+        - From source (development)
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system and processor
+      placeholder: "macOS 15 on arm64 / Ubuntu 24.04 on x64"
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser
+      placeholder: "Safari 19 / Chrome 140 / Firefox 145"
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Output of `nyxos doctor` and `nyxos status`
+      render: text
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log lines
+      description: From `nyxos logs` (`~/.nyxos/logs/server.log`, `bridge.log`). Please remove anything private.
+      render: text
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: Screenshots (ideally from `nyxos demo`), Claude Code / Codex versions, ideas about the cause.

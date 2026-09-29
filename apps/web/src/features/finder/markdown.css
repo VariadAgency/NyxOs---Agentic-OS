@@ -1,0 +1,185 @@
+/* Markdown als Dokument. „Papier“ = helle Seite wie ein PDF (Satzspiegel, Serifen-Grundschrift,
+   Überschriften in Archivo), „inline“ = dieselbe Typo dunkel in einer Karte. Farben der Papierseite sind
+   bewusst eigene (Papierweiß/Tinte), weil die dunklen Tokens auf Papier nicht lesbar wären. */
+
+.cc-md {
+  --md-ink: var(--a-ink);
+  --md-mut: var(--a-mut);
+  --md-line: var(--a-line);
+  --md-acc: var(--a-acc);
+  --md-code-bg: var(--a-p3);
+  --md-head: var(--a-ink);
+  color: var(--md-ink);
+  font-size: 14px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.cc-md-paper {
+  --md-ink: #23262d;
+  --md-mut: #5b6270;
+  --md-line: #dcd8cf;
+  --md-acc: #1f6f86;
+  --md-code-bg: #f0ede6;
+  --md-head: #14171c;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 64px 72px 80px;
+  background: #fbfaf7;
+  border-radius: 4px;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 18px 50px rgba(0, 0, 0, 0.45),
+    0 2px 6px rgba(0, 0, 0, 0.3);
+  font-family: "Charter", "Iowan Old Style", "Source Serif Pro", Georgia, serif;
+  font-size: 16px;
+  line-height: 1.7;
+  color-scheme: light;
+}
+
+@media (max-width: 720px) {
+  .cc-md-paper {
+    padding: 32px 22px 40px;
+  }
+}
+
+.cc-md > :first-child {
+  margin-top: 0;
+}
+
+.cc-md h1,
+.cc-md h2,
+.cc-md h3,
+.cc-md h4,
+.cc-md h5,
+.cc-md h6 {
+  font-family: var(--font-display);
+  color: var(--md-head);
+  line-height: 1.25;
+  font-weight: 650;
+  margin: 1.6em 0 0.55em;
+}
+.cc-md h1 {
+  font-size: 1.9em;
+  letter-spacing: -0.01em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--md-line);
+}
+.cc-md h2 {
+  font-size: 1.4em;
+  padding-bottom: 0.2em;
+  border-bottom: 1px solid var(--md-line);
+}
+.cc-md h3 {
+  font-size: 1.15em;
+}
+.cc-md h4,
+.cc-md h5,
+.cc-md h6 {
+  font-size: 1em;
+}
+.cc-md-inline h1 {
+  font-size: 1.35em;
+}
+.cc-md-inline h2 {
+  font-size: 1.2em;
+}
+.cc-md-inline h3 {
+  font-size: 1.05em;
+}
+
+.cc-md p,
+.cc-md ul,
+.cc-md ol,
+.cc-md blockquote,
+.cc-md pre,
+.cc-md .cc-md-table {
+  margin: 0 0 1em;
+}
+.cc-md ul {
+  list-style: disc;
+  padding-left: 1.4em;
+}
+.cc-md ol {
+  list-style: decimal;
+  padding-left: 1.6em;
+}
+.cc-md li + li {
+  margin-top: 0.25em;
+}
+.cc-md li > ul,
+.cc-md li > ol {
+  margin: 0.25em 0 0;
+}
+.cc-md input[type="checkbox"] {
+  margin-right: 0.4em;
+  vertical-align: -1px;
+}
+.cc-md a {
+  color: var(--md-acc);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
+}
+.cc-md strong {
+  font-weight: 650;
+  color: var(--md-head);
+}
+.cc-md blockquote {
+  border-left: 3px solid var(--md-acc);
+  padding: 0.1em 0 0.1em 1em;
+  color: var(--md-mut);
+}
+.cc-md hr {
+  border: 0;
+  border-top: 1px solid var(--md-line);
+  margin: 2em 0;
+}
+.cc-md code {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  background: var(--md-code-bg);
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+}
+.cc-md pre {
+  background: var(--md-code-bg);
+  border-radius: 8px;
+  padding: 0.9em 1em;
+  overflow-x: auto;
+  line-height: 1.5;
+}
+.cc-md pre code {
+  background: none;
+  padding: 0;
+  font-size: 0.84em;
+}
+.cc-md img {
+  max-width: 100%;
+  border-radius: 6px;
+}
+.cc-md-table {
+  overflow-x: auto;
+}
+.cc-md table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.88em;
+  line-height: 1.45;
+  font-family: var(--font-body);
+}
+.cc-md th,
+.cc-md td {
+  border: 1px solid var(--md-line);
+  padding: 0.4em 0.65em;
+  text-align: left;
+  vertical-align: top;
+}
+.cc-md th {
+  background: var(--md-code-bg);
+  font-weight: 600;
+  color: var(--md-head);
+}
+.cc-md-paper tr:nth-child(even) td {
+  background: #f6f3ec;
+}

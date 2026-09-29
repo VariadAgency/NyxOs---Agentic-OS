@@ -1,0 +1,512 @@
+/* Selbst gehostete Schriften, kein CDN (siehe docs/UI.md). */
+@import "@fontsource-variable/archivo/standard.css";
+@import "@fontsource/ibm-plex-sans/400.css";
+@import "@fontsource/ibm-plex-sans/500.css";
+@import "@fontsource/ibm-plex-sans/600.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+
+@import "tailwindcss";
+
+/*
+ * Tokens: komplett dunkles Theme ohne Blautönung, knallige farbige Akzente (angelehnt an ein
+ * Kassen-/POS-Designsystem).
+ * Namen bleiben (--a-*), Werte sind ein System wie macOS/iOS im Dunkelmodus – aber echt schwarz und NEUTRAL:
+ *   Flächen-Ebenen  --a-bg (Grund, fast schwarz) < --a-p (Karte) < --a-p2 (erhöht, Hover, Dialog) < --a-p3 (Bedienfläche, Chip)
+ *   Linien          --a-line = neutrales Weiß mit geringer Deckkraft, --a-line-strong für Hover/Fokus
+ *   Text            --a-ink (warmes Weiß wie POS) · --a-mut (neutrales Grau, ≥ 6:1 auf allen Ebenen) · --a-dim nur Deko
+ *   Akzente         knallig (POS: new/work/ready/error/vip), aber sparsam: nur Punkt, Symbol, dünne Linie oder Zahl.
+ *   Hauptknopf      wie POS primary/onPrimary: warmes Weiß mit schwarzem Text.
+ * Als eigenes :root-Regel geschrieben (nicht nur in @theme), damit Tailwind sie nicht wegkürzt.
+ * test/design-rules.test.tsx prüft: jede Textfarbe ≥ 4,5:1 auf jeder Fläche, Ebenen steigen an, Grautöne ohne
+ * Blaustich, keine Flächen-Verläufe.
+ */
+:root {
+  --a-bg: #050505;
+  --a-p: #111111;
+  --a-p2: #1a1a1a;
+  --a-p3: #242424;
+  --a-line: rgb(255 255 255 / 0.09);
+  --a-line-strong: rgb(255 255 255 / 0.18);
+  --a-ink: #f3f3ef;
+  --a-mut: #a1a1a1;
+  --a-dim: #5c5c5c;
+  /* Hauptknopf (POS primary/onPrimary). */
+  --a-primary: #f3f3ef;
+  --a-on-primary: #0a0a0a;
+  /* Akzent für Links, aktive Auswahl, Fokus: Blau wie POS „new“ bzw. iOS-Links (D1-Kritik: vorher Türkis überall,
+     die Seite wirkte einfarbig). Türkis bleibt als eigene Bedeutungsfarbe (--a-teal). */
+  --a-acc: #4da3ff;
+  --a-teal: #3cc6c0;
+  /* Anbieter-Farben (Claude = Orange wie die Marke, Codex = Hellblau; OpenAI in
+     Einstellungen → Anbieter = App-Blau --a-acc, s. features/settings/providerColors.ts).
+     Farbton-Paar Orange/Blau: auch bei Rot-Grün-Schwäche gut unterscheidbar; Orange bewusst röter als „wartet“ (Amber).
+     --a-acc2 bleibt als Alias für ältere Stellen. */
+  --a-claude: #ff8f57;
+  --a-codex: #8fd0ff;
+  --a-acc2: var(--a-claude);
+  /* Zustände wie POS: ready · work · error · new. */
+  --a-ok: #2fd27a;
+  --a-wait: #ffb020;
+  --a-bad: #ff5a4e;
+  --a-done: #4da3ff;
+  --a-idle: #8e8e8e;
+  --a-conf: #ff6b8a;
+  /* POS vip (Besonderes, „wichtig“). */
+  --a-gold: #e3b341;
+  /* R1 · S0-1: zusätzliche Kategorie-Farben (Gruppen der Verbindungs-Seite) — bewusst keine
+     Zustandsfarbe (grün/gelb/rot/pink), damit ein Gruppen-Punkt nie wie ein Zustand aussieht.
+     Lime bleibt grün-gelb (nicht POS-„Bier“ #D9A641): sonst sähe „Erledigt“ in den Aufgaben aus wie „Prüfen“ (Amber). */
+  --a-violet: #a77bff;
+  --a-indigo: #7b8cff;
+  --a-lime: #c8e64a;
+  /* R3g: Magenta als eigener Anbieter-Farbton (OpenRouter) – klar weg von Violett, Rosa und Blau. */
+  --a-magenta: #e855e0;
+  /* R3g: reines Gelb (Anbieter Groq) – heller und kühler als „wartet“ (Amber), klar weg vom Claude-Orange. */
+  --a-yellow: #ffd60a;
+
+  /* R1 · K2: gemeinsame Höhe aller Bedienelemente einer Kopfzeile (Suche, Knöpfe, Umschalter).
+     Verwendung in Tailwind: `h-(--a-ctl-h)`. */
+  --a-ctl-h: 30px;
+  /* Höhe der Demo-Leiste unten (setzt `DemoShell`, sonst 0) – die App und unten schwebende Karten halten so viel frei. */
+  --a-demo-bar-h: 0px;
+  /* R1 · B3: temporär/Wegwerf (Sanduhr-Marke) – eigener Farbton, nicht mit „wartet“ (Gelb) verwechselbar. */
+  --a-temp: #c9a8ff;
+  /* R2 · N2b: Nyx (Begleiter, Nyx-Cursor, neuronales Netz). Nacht-Violett mit kühlem Kern – bewusst kein
+     Zustands- oder Anbieter-Ton, damit Nyx nie wie „wartet“/„Fehler“/Claude/Codex aussieht. */
+  --a-nyx: #c77dff;
+  --a-nyx-2: #5fd4ff;
+  /* R4: Nyx' Farbfolge (Leiste, Nyx-Feld, Nyx-Tab gleich; Ruhe = --a-nyx lila). Eigene Tokens, damit ein anderer
+     Akzent (D1 machte --a-acc blau → „spricht“ sah aus wie „hört zu“) die Folge nie wieder verwischt.
+     Alle vier kräftig und hell genug auf --a-bg; als Hex, weil das 3D-Netz (three.js) sie direkt liest. */
+  --a-nyx-listen: #4da3ff; /* hört zu / Eingabe – blau */
+  --a-nyx-think: #ff4d5e; /* denkt nach – rot */
+  --a-nyx-tool: #ff8a1f; /* Werkzeug, sucht sich Punkte – orange */
+  --a-nyx-speak: #2fd27a; /* antwortet (schreibt/spricht) – grün */
+
+  /* R2 · D1: Bewegung – eine Kurve, drei Dauern (150–250 ms). */
+  --a-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  color-scheme: dark;
+}
+
+/* Dieselben Tokens als Tailwind-Farben (bg-a-*, text-a-*, border-a-* …). */
+@theme inline {
+  --color-a-bg: var(--a-bg);
+  --color-a-p: var(--a-p);
+  --color-a-p2: var(--a-p2);
+  --color-a-p3: var(--a-p3);
+  --color-a-line: var(--a-line);
+  --color-a-line-strong: var(--a-line-strong);
+  --color-a-primary: var(--a-primary);
+  --color-a-on-primary: var(--a-on-primary);
+  --color-a-gold: var(--a-gold);
+  --color-a-teal: var(--a-teal);
+  --color-a-ink: var(--a-ink);
+  --color-a-mut: var(--a-mut);
+  --color-a-dim: var(--a-dim);
+  --color-a-acc: var(--a-acc);
+  --color-a-acc2: var(--a-acc2);
+  --color-a-ok: var(--a-ok);
+  --color-a-wait: var(--a-wait);
+  --color-a-idle: var(--a-idle);
+  --color-a-done: var(--a-done);
+  --color-a-bad: var(--a-bad);
+  --color-a-conf: var(--a-conf);
+  --color-a-violet: var(--a-violet);
+  --color-a-indigo: var(--a-indigo);
+  --color-a-lime: var(--a-lime);
+  --color-a-magenta: var(--a-magenta);
+  --color-a-yellow: var(--a-yellow);
+  --color-a-temp: var(--a-temp);
+  --color-a-nyx: var(--a-nyx);
+  --color-a-nyx-2: var(--a-nyx-2);
+  --color-a-nyx-listen: var(--a-nyx-listen);
+  --color-a-nyx-think: var(--a-nyx-think);
+  --color-a-nyx-tool: var(--a-nyx-tool);
+  --color-a-nyx-speak: var(--a-nyx-speak);
+
+  /* R2 · D1: Schrift wie auf Mac/iPhone – SF Pro über die Systemschrift; auf anderen Geräten greifen die
+     selbst gehosteten Schriften (kein CDN). Display = dieselbe Familie, nur größer/fetter mit engerer Laufweite. */
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Archivo Variable", "Helvetica Neue", Arial, sans-serif;
+  --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "SF Mono", ui-monospace, "IBM Plex Mono", Menlo, monospace;
+
+  /* R2 · D1: ein Radius-Satz (Bedienelement 8 · Chip/Zeile 10 · Karte 14 · Kachel 18). */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --radius-2xl: 18px;
+  --radius-3xl: 24px;
+
+  /* R2 · D1: ein Schatten-Satz. Karten liegen flach (nur Linie); Schatten nur für Schwebendes. */
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.25);
+  --shadow-raise: 0 10px 28px -12px rgb(0 0 0 / 0.8);
+  --shadow-pop: 0 24px 60px -16px rgb(0 0 0 / 0.8), 0 0 0 1px rgb(255 255 255 / 0.09);
+
+  --ease-apple: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* R2 · D1: Schrift-Skala wie SF (Seitentitel · Abschnitt · Überschrift · Text · Fußnote · Versal-Label). */
+  --text-title: 28px;
+  --text-title--line-height: 1.15;
+  --text-title--letter-spacing: -0.022em;
+  --text-title2: 20px;
+  --text-title2--line-height: 1.25;
+  --text-title2--letter-spacing: -0.012em;
+  --text-headline: 15px;
+  --text-headline--line-height: 1.35;
+  --text-callout: 13.5px;
+  --text-callout--line-height: 1.45;
+  --text-caption: 12px;
+  --text-caption--line-height: 1.35;
+  --text-label: 11px;
+  --text-label--line-height: 1.3;
+}
+
+@layer base {
+  body {
+    background: var(--a-bg);
+    color: var(--a-ink);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  /* Große Überschriften: engere Laufweite wie SF Pro Display. */
+  h1,
+  h2 {
+    letter-spacing: -0.015em;
+  }
+  /* Ein Fokus-Ring für alles (Tastatur): Akzentfarbe, 2 px Abstand. */
+  :focus-visible {
+    outline-color: var(--a-acc);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: color-mix(in srgb, var(--a-acc) 35%, transparent);
+  }
+}
+
+/*
+ * R2 · D1: Kleine Versal-Überschriften („SESSIONS OFFEN“, „CONTAINER“ …) stehen überall als `font-mono uppercase`.
+ * Apple setzt solche Überschriften in der Textschrift, halbfett, mit etwas Laufweite – das liest sich ruhiger
+ * als Schreibmaschine. Eine Regel statt 100 Einzeländerungen; Zahlen, Zeiten und Pfade bleiben Mono.
+ */
+.font-mono.uppercase {
+  font-family: var(--font-body);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+/* Zahlen in Tabellen/Kennzahlen immer gleich breit (Tabellenziffern). */
+.font-display,
+table {
+  font-variant-numeric: tabular-nums;
+}
+
+/* dünner Scrollbalken wie im Mockup, für Hauptbereich und Sessions-Spalte */
+.cc-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(255 255 255 / 0.2) transparent;
+}
+
+/*
+ * Karte: keine zweifarbigen Kacheln (kein „weiß und dann Verlauf“), sondern EINE Fläche in einer Farbe, 1 px feine Linie, Radius 14 px.
+ * Hover hebt nur die Linie an (150 ms).
+ */
+.cc-card-deep {
+  background: var(--a-p);
+  border-radius: var(--radius-xl);
+  transition:
+    border-color 150ms var(--a-ease),
+    background-color 150ms var(--a-ease);
+}
+.cc-card-deep:hover {
+  border-color: var(--a-line-strong);
+}
+
+/* R2 · D1: Material für Schwebendes (Dialog-Hintergrund, Menü) – abgedunkelt und leicht unscharf wie in macOS.
+   Glas NUR hier und in Leisten/Overlays, nie über Text in Karten. */
+.cc-scrim {
+  background: rgb(0 0 0 / 0.6);
+  backdrop-filter: blur(6px) saturate(140%);
+  -webkit-backdrop-filter: blur(6px) saturate(140%);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .cc-scrim {
+    animation: cc-tab-fade 180ms var(--a-ease) both;
+  }
+}
+
+/* R2 · D1: reduzierte Bewegung – alle Übergänge/Animationen global aus (Ereignisse wie animationend feuern weiter). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* R2 · N7b: Status-Punkt im Session-Tab wird nach langem Drücken zum ✕ (dreht und wächst hinein). */
+.cc-tab-x {
+  display: inline-block;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .cc-tab-x {
+    animation: cc-tab-x 200ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+}
+@keyframes cc-tab-x {
+  from {
+    opacity: 0;
+    transform: scale(0.3) rotate(-90deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+/* Kennzahl: Zahl zählt beim ersten Erscheinen hoch (Punkt 2) — deaktiviert bei reduzierter Bewegung. */
+@media (prefers-reduced-motion: no-preference) {
+  .cc-kpi-value {
+    animation: cc-kpi-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+}
+@keyframes cc-kpi-in {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* P5: leichtes Stagger-Einblenden für Kacheln/Listen beim ersten Laden (docs/DESIGN-INSPIRATION.md
+   "Bewegung"), nur über `motion-safe:` genutzt — Tailwind schaltet das bei
+   prefers-reduced-motion:reduce von selbst ab. */
+@keyframes fadein {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Fortschrittsbalken: Breite animiert sich, kein harter Sprung (Punkt 2/Bewegung). */
+.cc-progress-fill {
+  transition: width 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .cc-progress-fill {
+    transition: none;
+  }
+}
+
+/* Liste, gestaffeltes Einblenden beim ersten Laden (Bewegung, max. 8 Elemente) */
+@media (prefers-reduced-motion: no-preference) {
+  .cc-stagger {
+    animation: cc-stagger-in 200ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+}
+@keyframes cc-stagger-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* UX-A Punkt 7: Tab-Wechsel blendet kurz über (150 ms) statt hart umzuschalten — `motion-safe:`
+   in App.tsx `TabFade` schaltet das bei prefers-reduced-motion:reduce von selbst ab. */
+@keyframes cc-tab-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Zustands-Punkt "läuft" pulsiert sanft (Bewegung) */
+@media (prefers-reduced-motion: no-preference) {
+  .cc-pulse {
+    animation: cc-pulse 2s ease-in-out infinite;
+  }
+}
+@keyframes cc-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+/* PG Gehirn: Seitenblatt gleitet weich herein (aus bei prefers-reduced-motion über motion-safe). */
+@keyframes brainSheetIn {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* W-1 Kontext-Wächter: Doppel-Schieberegler — Spur unsichtbar (die Zonen-Farben kommen aus dem
+   eigenen Verlauf dahinter), nur der Griff sichtbar, beide überlagerten <input> teilen sich eine Spur. */
+.cc-range-thumb {
+  pointer-events: none;
+}
+.cc-range-thumb::-webkit-slider-runnable-track {
+  background: transparent;
+}
+.cc-range-thumb::-moz-range-track {
+  background: transparent;
+}
+.cc-range-thumb::-webkit-slider-thumb {
+  pointer-events: auto;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--a-ink);
+  border: 2px solid var(--a-bg);
+  box-shadow: 0 0 0 1px var(--a-line);
+  cursor: pointer;
+  margin-top: 3px;
+}
+.cc-range-thumb::-moz-range-thumb {
+  pointer-events: auto;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--a-ink);
+  border: 2px solid var(--a-bg);
+  box-shadow: 0 0 0 1px var(--a-line);
+  cursor: pointer;
+}
+
+/* W-1: Ring (Kontext-Anteil) füllt sich weich statt hart zu springen — wie `.cc-progress-fill`. */
+.cc-ring {
+  transition: background 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .cc-ring {
+    transition: none;
+  }
+}
+
+/* R1 · K1: Die Tab-Zeilen blenden nur an dem Rand aus, an dem sie wirklich weiterscrollen
+   (`useScrollEdges` setzt die data-Attribute). Vorher lag die Maske immer an beiden Rändern — der
+   erste Tab („Coding“) bekam dadurch eine weiche, verwaschene linke Kante, die wie ein Schatten wirkte. */
+.cc-edge-fade {
+  --cc-fade-l: 0px;
+  --cc-fade-r: 0px;
+  mask-image: linear-gradient(to right, transparent, black var(--cc-fade-l), black calc(100% - var(--cc-fade-r)), transparent);
+}
+.cc-edge-fade[data-fade-left="true"] {
+  --cc-fade-l: 16px;
+}
+.cc-edge-fade[data-fade-right="true"] {
+  --cc-fade-r: 16px;
+}
+
+/* R2 N12: Gehirn-Legende klappt mit „Flug“ auf und zu — die Kachel wächst über dem Knopf nach oben,
+   die Einträge fliegen gestaffelt hoch (beim Zuklappen wieder runter), die Farbpunkte im Knopf tauchen ab. */
+.brain-legend-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transform: translateY(10px) scale(0.98);
+  transform-origin: bottom left;
+  transition:
+    grid-template-rows 360ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    transform 360ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 220ms ease;
+}
+.brain-legend[data-open="1"] .brain-legend-body {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transform: none;
+}
+.brain-legend-item {
+  opacity: 0;
+  transform: translateY(14px) scale(0.94);
+  transition:
+    transform 380ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 240ms ease;
+  transition-delay: 0ms;
+}
+.brain-legend[data-open="1"] .brain-legend-item {
+  opacity: 1;
+  transform: none;
+  transition-delay: calc(var(--i, 0) * 22ms);
+}
+.brain-legend-dots > span {
+  transition:
+    transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 200ms ease;
+  transition-delay: calc(var(--i, 0) * 14ms);
+}
+.brain-legend[data-open="1"] .brain-legend-dots > span {
+  opacity: 0.35;
+  transform: translateY(-6px) scale(0.7);
+}
+/* R2 N12b: Steuer-Leiste rechts fährt aus dem schmalen Griff am Rand heraus (und wieder hinein). */
+.brain-panel-body {
+  opacity: 0;
+  transform: translateX(28px) scale(0.97);
+  transform-origin: top right;
+  pointer-events: none;
+  transition:
+    transform 380ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 220ms ease;
+}
+.brain-panel[data-open="1"] .brain-panel-body {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+.brain-panel-handle {
+  transition:
+    transform 300ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 200ms ease,
+    color 150ms ease;
+}
+/* Schmale Bildschirme: die Leiste ist ein Blatt von unten (max. 45 % Höhe) und fährt von unten herein. */
+@media (width < 40rem) {
+  .brain-panel-body {
+    transform: translateY(24px);
+    transform-origin: bottom center;
+  }
+}
+.brain-panel[data-open="1"] .brain-panel-handle {
+  opacity: 0;
+  transform: translateX(14px);
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .brain-panel-body,
+  .brain-panel-handle,
+  .brain-legend-body,
+  .brain-legend-item,
+  .brain-legend-dots > span {
+    transition: none;
+  }
+}

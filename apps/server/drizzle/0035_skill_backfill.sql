@@ -1,0 +1,1 @@
+ALTER TABLE "skill_scan_state" ADD COLUMN "backfill_version" integer DEFAULT 0 NOT NULL;

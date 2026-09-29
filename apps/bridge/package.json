@@ -1,0 +1,21 @@
+{
+  "name": "@nyxos/bridge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "@nyxos/shared": "workspace:*",
+    "chokidar": "^5.0.0"
+  },
+  "devDependencies": {
+    "@hono/node-server": "^2.1.1",
+    "esbuild": "^0.28.2"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

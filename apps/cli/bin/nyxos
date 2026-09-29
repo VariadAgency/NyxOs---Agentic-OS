@@ -1,0 +1,7 @@
+#!/bin/sh
+# Starts the `nyxos` command with the Node.js runtime that the installer placed in ~/.nyxos.
+NYXOS_HOME="${NYXOS_HOME:-$HOME/.nyxos}"
+export NYXOS_HOME
+NODE="${NYXOS_NODE:-$NYXOS_HOME/runtime/node/bin/node}"
+[ -x "$NODE" ] || NODE="node"
+exec "$NODE" "$NYXOS_HOME/app/current/cli/nyxos.mjs" "$@"

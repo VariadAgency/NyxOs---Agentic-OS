@@ -1,0 +1,22 @@
+node_modules/
+dist/
+*.log
+.env
+.env.*
+!.env.example
+coverage/
+.DS_Store
+*.tsbuildinfo
+apps/bridge/bin/
+# Lokaler Probe-Stack (P2-6, docs/BETRIEB.md "Lokaler Probe-Stack") — echte Verlaufsinhalte NIE ins Repo.
+.probe/
+apps/web/e2e/.output/
+# P8: whisper.cpp-Modelle (groß, nie ins Repo) und lokale Sprach-Testdateien.
+.models/
+# R2 · N3: Python-Zwischenstände (nyx-voice-Tests)
+__pycache__/
+*.pyc
+.demo/
+
+# Personal deny-list for scripts/check-clean.sh (never commit)
+.check-clean.local

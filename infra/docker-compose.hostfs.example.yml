@@ -1,0 +1,23 @@
+# Optional: read-only access to host folders for the server file browser and host details.
+#
+#   cp infra/docker-compose.hostfs.example.yml infra/docker-compose.hostfs.yml   # then adjust the paths
+#   docker compose -f infra/docker-compose.yml -f infra/docker-compose.hostfs.yml up -d
+#
+# Everything is mounted READ ONLY. The API additionally checks every path (realpath must stay inside the root)
+# and keeps a lock list: .env files, keys, ~/.ssh private keys, backups and database data are never shown
+# (apps/server/src/server/hostfs.ts). The host's /proc is deliberately NOT mounted.
+# `create_host_path: false`: a missing source aborts the start instead of creating an empty folder on the host.
+services:
+  api:
+    environment:
+      # id:path-in-container:path-on-host, comma separated. Ids: lowercase letters, digits, dashes.
+      NYXOS_HOSTFS_ROOTS: home:/hostfs/home:/home/alex,srv:/hostfs/srv:/srv,log:/hostfs/log:/var/log
+      # Host details (OS name, hostname). Load, memory and CPU come from the container's own /proc.
+      NYXOS_HOST_OS_RELEASE: /host/os-release
+      NYXOS_HOST_HOSTNAME: /host/hostname
+    volumes:
+      - { type: bind, source: /home/alex, target: /hostfs/home, read_only: true, bind: { create_host_path: false } }
+      - { type: bind, source: /srv, target: /hostfs/srv, read_only: true, bind: { create_host_path: false } }
+      - { type: bind, source: /var/log, target: /hostfs/log, read_only: true, bind: { create_host_path: false } }
+      - { type: bind, source: /etc/os-release, target: /host/os-release, read_only: true, bind: { create_host_path: false } }
+      - { type: bind, source: /etc/hostname, target: /host/hostname, read_only: true, bind: { create_host_path: false } }

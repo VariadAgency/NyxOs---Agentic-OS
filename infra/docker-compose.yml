@@ -1,0 +1,374 @@
+# NyxOS in server mode: API + web app, its own Postgres, and optional helpers.
+#
+#   cp infra/.env.example infra/.env      # fill in NYXOS_DB_PASSWORD and NYXOS_SECRETS_KEY
+#   docker compose -f infra/docker-compose.yml up -d --build
+#
+# Optional profiles (start them together with the core services):
+#   --profile agent   Nyx worker with the official claude CLI (needs CLAUDE_CODE_OAUTH_TOKEN)
+#   --profile voice   speech recognition + text-to-speech for Nyx (CPU only, downloads ~1.7 GB of models)
+#   --profile push    ntfy for phone notifications
+# Read-only access to host folders (server file browser, host info) is opt-in:
+#   docker compose -f infra/docker-compose.yml -f infra/docker-compose.hostfs.yml up -d
+#   (copy docker-compose.hostfs.example.yml to docker-compose.hostfs.yml and adjust the paths first)
+#
+# The API applies all database migrations on start. Nothing listens on a public interface: the API is
+# bound to 127.0.0.1 — reach it through an SSH tunnel or a private network such as Tailscale.
+name: nyxos
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: nyxos-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: nyxos
+      POSTGRES_DB: nyxos
+      POSTGRES_PASSWORD: ${NYXOS_DB_PASSWORD:?set NYXOS_DB_PASSWORD in infra/.env}
+    volumes:
+      - nyxos-pgdata:/var/lib/postgresql/data
+    networks:
+      - db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nyxos -d nyxos"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1g
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  api:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile
+    image: nyxos-api:latest
+    container_name: nyxos-api
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgres://nyxos:${NYXOS_DB_PASSWORD}@postgres:5432/nyxos
+      # Nyx runs in the separate `agent` container (this image has no claude CLI).
+      NYXOS_HAIKU_REMOTE: "1"
+      # Only "token set yes/no" for the status display — the token itself stays out of the API container
+      # (env_file above passes the whole .env through, so it is blanked here).
+      NYXOS_HAIKU_TOKEN_SET: ${CLAUDE_CODE_OAUTH_TOKEN:+1}
+      CLAUDE_CODE_OAUTH_TOKEN: ""
+      # Server tab: containers only through the read-only proxy (never the raw Docker socket), Dozzle only
+      # internally — the API forwards /dozzle/ behind its own login (routes/server.ts).
+      NYXOS_DOCKER_PROXY_URL: http://socket-proxy:2375
+      NYXOS_DOZZLE_INTERNAL_URL: http://dozzle:8080/dozzle
+      NYXOS_DOZZLE_URL: /dozzle/
+      # ntfy (profile `push`) inside the project; inside the container 127.0.0.1 is the API itself.
+      NTFY_BASE_URL: http://ntfy:80
+      NTFY_PUBLIC_URL: ${NTFY_PUBLIC_URL:-}
+      # Voice service (profile `voice`); if it is not running, the API says so in one sentence.
+      NYXOS_NYX_VOICE_URL: http://nyx-voice:8090
+    volumes:
+      - nyxos-archive:/archive
+    ports:
+      - "127.0.0.1:${NYXOS_PORT:-47800}:8080"
+    networks:
+      - intern
+      - db
+      - docker
+      - voice
+    depends_on:
+      postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1g
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Docker read access for the server tab. GET/HEAD only (POST=0): container list/details/stats, logs, images,
+  # info, events. No exec, no start/stop/restart/pause, no archive/export, no networks/volumes/swarm.
+  # No host port: only on the internal network `nyxos-docker` (api + dozzle).
+  socket-proxy:
+    image: lscr.io/linuxserver/socket-proxy:3.4.4
+    container_name: nyxos-socket-proxy
+    restart: unless-stopped
+    environment:
+      POST: "0"
+      CONTAINERS: "1"
+      ALLOW_LOGS: "1"
+      IMAGES: "1"
+      INFO: "1"
+      EVENTS: "1"
+      PING: "1"
+      VERSION: "1"
+      EXEC: "0"
+      ALLOW_START: "0"
+      ALLOW_STOP: "0"
+      ALLOW_RESTARTS: "0"
+      ALLOW_PAUSE: "0"
+      ALLOW_UNPAUSE: "0"
+      ALLOW_ARCHIVE: "0"
+      ALLOW_EXPORT: "0"
+      ALLOW_CHANGES: "0"
+      ALLOW_TOP: "0"
+      AUTH: "0"
+      BUILD: "0"
+      COMMIT: "0"
+      CONFIGS: "0"
+      DISTRIBUTION: "0"
+      NETWORKS: "0"
+      NODES: "0"
+      PLUGINS: "0"
+      SECRETS: "0"
+      SERVICES: "0"
+      SESSION: "0"
+      SWARM: "0"
+      SYSTEM: "0"
+      TASKS: "0"
+      VOLUMES: "0"
+      LOG_LEVEL: warning
+    volumes:
+      # `:ro` only protects the socket FILE, not the Docker API — the switches above (haproxy) are the protection.
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - docker
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 64m
+    read_only: true
+    tmpfs:
+      - /run
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Dozzle: live logs of all containers, read only through the proxy above (no socket). No host port: the API
+  # forwards /dozzle/ behind the NyxOS login and names the user via `Remote-User` (forward-proxy). Actions,
+  # shell, self-update, update/image checks and analytics are switched off. `nyxos-docker` has no internet.
+  dozzle:
+    image: amir20/dozzle:v11.1.1
+    container_name: nyxos-dozzle
+    restart: unless-stopped
+    environment:
+      DOCKER_HOST: tcp://socket-proxy:2375
+      DOZZLE_BASE: /dozzle
+      DOZZLE_HOSTNAME: nyxos
+      DOZZLE_AUTH_PROVIDER: forward-proxy
+      DOZZLE_ENABLE_ACTIONS: "false"
+      DOZZLE_ENABLE_SHELL: "false"
+      DOZZLE_ENABLE_MCP: "false"
+      DOZZLE_AUTO_UPDATE: "off"
+      DOZZLE_RELEASE_CHECK_MODE: manual
+      DOZZLE_IMAGE_CHECK_MODE: "off"
+      DOZZLE_NO_ANALYTICS: "true"
+    volumes:
+      - nyxos-dozzle-data:/data
+    networks:
+      - docker
+    depends_on:
+      - socket-proxy
+    healthcheck:
+      test: ["CMD", "/dozzle", "healthcheck"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256m
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Push notifications via ntfy (profile `push`), bound to 127.0.0.1 only. `upstream-base-url` points to the
+  # official ntfy.sh server so iOS delivery works through its APNs connection — ntfy only needs outgoing HTTPS.
+  ntfy:
+    profiles: ["push"]
+    # Pinned version: bump deliberately here, never implicitly through `:latest`.
+    image: binwiederhier/ntfy:v2.11.0
+    container_name: nyxos-ntfy
+    restart: unless-stopped
+    command:
+      - serve
+    environment:
+      # Must be EXACTLY the address the phone subscribes to — otherwise the upstream wake-up does not match.
+      NTFY_BASE_URL: ${NTFY_PUBLIC_URL:-http://127.0.0.1:2586}
+      NTFY_UPSTREAM_BASE_URL: https://ntfy.sh
+      NTFY_BEHIND_PROXY: "false"
+      NTFY_ENABLE_LOGIN: "false" # no web login — access only with the topic token from the push settings
+      NTFY_AUTH_DEFAULT_ACCESS: deny-all
+    volumes:
+      - nyxos-ntfy-cache:/var/cache/ntfy
+    ports:
+      - "127.0.0.1:2586:80"
+    networks:
+      - intern
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128m
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Nyx worker with the official claude CLI (pinned in infra/Dockerfile.agent), profile `agent`. Needs
+  # CLAUDE_CODE_OAUTH_TOKEN (run `claude setup-token` once) and NYXOS_WORKER_TOKEN in infra/.env. Without a
+  # token the UI shows "waiting for token". No Docker socket, no database, internal network only.
+  agent:
+    profiles: ["agent"]
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.agent
+    image: nyxos-agent:latest
+    container_name: nyxos-agent
+    restart: unless-stopped
+    # Only the variables it needs (not the whole .env → no database password, no ntfy token).
+    environment:
+      CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:-}
+      NYXOS_WORKER_TOKEN: ${NYXOS_WORKER_TOKEN:-}
+      NYXOS_HAIKU_MODEL: ${NYXOS_HAIKU_MODEL:-haiku}
+      NYXOS_WORKER_URL: ws://api:8080/haiku-worker
+      NYXOS_API_URL: http://api:8080
+    volumes:
+      - nyxos-agent-home:/home/node
+    networks:
+      - intern
+    depends_on:
+      - api
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 4g
+    read_only: true
+    tmpfs:
+      - /tmp:exec # the CLI unpacks native modules into TMPDIR when needed; Docker tmpfs is noexec otherwise
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Voice for Nyx (profile `voice`): speech recognition (Parakeet TDT v3, CC-BY-4.0) and text-to-speech (Piper
+  # voices, CC0/M-AILABS; Kyutai Pocket TTS, code MIT, weights CC-BY-4.0) via sherpa-onnx (Apache-2.0), CPU only.
+  # No host port, own network with the API only. Models live in a volume, never in the image: the first start
+  # downloads ~1.7 GB. Peak memory ≈ 4–4.5 GB; to save ≈ 0.5 GB drop comparison voices via NYX_TTS_VOICES.
+  nyx-voice:
+    profiles: ["voice"]
+    build:
+      context: ..
+      dockerfile: infra/nyx-voice/Dockerfile
+    image: nyxos-nyx-voice:latest
+    container_name: nyxos-nyx-voice
+    restart: unless-stopped
+    environment:
+      NYX_STT_MODEL: ${NYX_STT_MODEL:-parakeet-tdt-0.6b-v3-int8}
+      NYX_TTS_VOICES: ${NYX_TTS_VOICES:-}
+      NYX_TTS_DEFAULT: ${NYX_TTS_DEFAULT:-}
+      NYX_TTS_DEFAULT_EN: ${NYX_TTS_DEFAULT_EN:-}
+      NYX_MAX_DEFAULT_RTF: ${NYX_MAX_DEFAULT_RTF:-0.4}
+      NYX_MAX_DEFAULT_RTF_STREAMING: ${NYX_MAX_DEFAULT_RTF_STREAMING:-0.8}
+      NYX_LEXICON: ${NYX_LEXICON:-all}
+      NYX_POCKET_DECODE_STEPS: ${NYX_POCKET_DECODE_STEPS:-}
+      NYX_POCKET_TEMP: ${NYX_POCKET_TEMP:-}
+      NYX_POCKET_NOISE_CLAMP: ${NYX_POCKET_NOISE_CLAMP:-}
+      NYX_THREADS: "4"
+      NYX_LANGUAGE: ${NYX_LANGUAGE:-auto}
+    volumes:
+      - nyxos-nyx-voice-models:/models
+    networks:
+      - voice
+    # Lower CPU weight than the default (1024): other services on the host win when cores are busy.
+    cpu_shares: 256
+    deploy:
+      resources:
+        limits:
+          cpus: "4.0"
+          memory: 6g
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  nyxos-pgdata:
+    name: nyxos-pgdata
+  nyxos-nyx-voice-models:
+    name: nyxos-nyx-voice-models
+  nyxos-agent-home:
+    name: nyxos-agent-home
+  nyxos-archive:
+    name: nyxos-archive
+  nyxos-ntfy-cache:
+    name: nyxos-ntfy-cache
+  nyxos-dozzle-data:
+    name: nyxos-dozzle-data
+
+networks:
+  intern:
+    name: nyxos-intern
+  # api + postgres only; no internet, no host port.
+  db:
+    name: nyxos-db
+    internal: true
+  # api, socket-proxy, dozzle only; no internet, no host port.
+  docker:
+    name: nyxos-docker
+    internal: true
+  # api + nyx-voice only. NOT internal: the first start downloads the models (outgoing only).
+  voice:
+    name: nyxos-voice

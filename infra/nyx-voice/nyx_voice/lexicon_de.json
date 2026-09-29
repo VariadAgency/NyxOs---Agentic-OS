@@ -1,0 +1,550 @@
+[
+ {
+  "word": "NyxOS",
+  "say": "Nüx O S"
+ },
+ {
+  "word": "Nyx",
+  "say": "Nüx"
+ },
+ {
+  "word": "Pull Requests",
+  "say": "Pull Rikwests"
+ },
+ {
+  "word": "Pull Request",
+  "say": "Pull Rikwest"
+ },
+ {
+  "word": "Sessions",
+  "say": "Säschns"
+ },
+ {
+  "word": "Session",
+  "say": "Säschn"
+ },
+ {
+  "word": "Builds",
+  "say": "Bilds"
+ },
+ {
+  "word": "Build",
+  "say": "Bild"
+ },
+ {
+  "word": "gebuildet",
+  "say": "gebildet"
+ },
+ {
+  "word": "Commits",
+  "say": "Kommitts"
+ },
+ {
+  "word": "Commit",
+  "say": "Kommitt"
+ },
+ {
+  "word": "committet",
+  "say": "kommittet"
+ },
+ {
+  "word": "committen",
+  "say": "kommitten"
+ },
+ {
+  "word": "deployen",
+  "say": "diploien"
+ },
+ {
+  "word": "deployt",
+  "say": "diploit"
+ },
+ {
+  "word": "Deploys",
+  "say": "Diploiss"
+ },
+ {
+  "word": "Deploy",
+  "say": "Diploi"
+ },
+ {
+  "word": "Deployment",
+  "say": "Diploiment"
+ },
+ {
+  "word": "Claude",
+  "say": "Klohd"
+ },
+ {
+  "word": "Codex",
+  "say": "Kohdex"
+ },
+ {
+  "word": "Opus",
+  "say": "Ohpus"
+ },
+ {
+  "word": "GitHub",
+  "say": "Gitt Habb"
+ },
+ {
+  "word": "Git",
+  "say": "Gitt"
+ },
+ {
+  "word": "Worktrees",
+  "say": "Wörktries"
+ },
+ {
+  "word": "Worktree",
+  "say": "Wörktrie"
+ },
+ {
+  "word": "mergen",
+  "say": "mörtschen"
+ },
+ {
+  "word": "gemergt",
+  "say": "gemörtscht"
+ },
+ {
+  "word": "Merge",
+  "say": "Mörtsch"
+ },
+ {
+  "word": "pushen",
+  "say": "puschen"
+ },
+ {
+  "word": "gepusht",
+  "say": "gepuscht"
+ },
+ {
+  "word": "Push",
+  "say": "Pusch"
+ },
+ {
+  "word": "Branch",
+  "say": "Bräntsch"
+ },
+ {
+  "word": "Branches",
+  "say": "Bräntsches"
+ },
+ {
+  "word": "Mac",
+  "say": "Mäck"
+ },
+ {
+  "word": "iPhone",
+  "say": "Ei-Fohn"
+ },
+ {
+  "word": "Tailscale",
+  "say": "Tälskäil"
+ },
+ {
+  "word": "Browser",
+  "say": "Brauser"
+ },
+ {
+  "word": "Updates",
+  "say": "Apdäits"
+ },
+ {
+  "word": "Update",
+  "say": "Apdäit"
+ },
+ {
+  "word": "Features",
+  "say": "Fietschers"
+ },
+ {
+  "word": "Feature",
+  "say": "Fietscher"
+ },
+ {
+  "word": "Bugs",
+  "say": "Baggs"
+ },
+ {
+  "word": "Bug",
+  "say": "Bagg"
+ },
+ {
+  "word": "Chat",
+  "say": "Tschätt"
+ },
+ {
+  "word": "Chats",
+  "say": "Tschätts"
+ },
+ {
+  "word": "Tabs",
+  "say": "Täbs"
+ },
+ {
+  "word": "Tab",
+  "say": "Täb"
+ },
+ {
+  "word": "Tokens",
+  "say": "Tohkens"
+ },
+ {
+  "word": "Token",
+  "say": "Tohken"
+ },
+ {
+  "word": "Dashboard",
+  "say": "Däschbord"
+ },
+ {
+  "word": "Backend",
+  "say": "Bäck-end"
+ },
+ {
+  "word": "Frontend",
+  "say": "Front-end"
+ },
+ {
+  "word": "Workflow",
+  "say": "Wörkflou"
+ },
+ {
+  "word": "Cloud",
+  "say": "Klaud"
+ },
+ {
+  "word": "Upload",
+  "say": "Applohd"
+ },
+ {
+  "word": "Download",
+  "say": "Daunlohd"
+ },
+ {
+  "word": "Team",
+  "say": "Tiem"
+ },
+ {
+  "word": "Meeting",
+  "say": "Mieting"
+ },
+ {
+  "word": "Live",
+  "say": "Leif"
+ },
+ {
+  "word": "Login",
+  "say": "Logg-inn"
+ },
+ {
+  "word": "Timeout",
+  "say": "Teim-aut"
+ },
+ {
+  "word": "Fallback",
+  "say": "Fohl-bäck"
+ },
+ {
+  "word": "Container",
+  "say": "Kontäiner"
+ },
+ {
+  "word": "Server",
+  "say": "Sörver"
+ },
+ {
+  "word": "Code",
+  "say": "Kohd"
+ },
+ {
+  "word": "okay",
+  "say": "okeh"
+ },
+ {
+  "word": "OK",
+  "say": "okeh"
+ },
+ {
+  "word": "API",
+  "say": "A P I"
+ },
+ {
+  "word": "APIs",
+  "say": "A P Is"
+ },
+ {
+  "word": "UI",
+  "say": "U I"
+ },
+ {
+  "word": "UX",
+  "say": "U X"
+ },
+ {
+  "word": "URL",
+  "say": "U R L"
+ },
+ {
+  "word": "CPU",
+  "say": "Z P U"
+ },
+ {
+  "word": "GPU",
+  "say": "G P U"
+ },
+ {
+  "word": "RAM",
+  "say": "Ramm"
+ },
+ {
+  "word": "SSH",
+  "say": "S S H"
+ },
+ {
+  "word": "KI",
+  "say": "K I"
+ },
+ {
+  "word": "AI",
+  "say": "Ei Ei"
+ },
+ {
+  "word": "DB",
+  "say": "D B"
+ },
+ {
+  "word": "TTS",
+  "say": "T T S"
+ },
+ {
+  "word": "PR",
+  "say": "P R"
+ },
+ {
+  "word": "CI",
+  "say": "C I"
+ },
+ {
+  "word": "MCP",
+  "say": "M C P"
+ },
+ {
+  "word": "iOS",
+  "say": "Ei O S"
+ },
+ {
+  "word": "macOS",
+  "say": "Mäck O S"
+ },
+ {
+  "word": "E-Mail",
+  "say": "I-Mäil"
+ },
+ {
+  "word": "E-Mails",
+  "say": "I-Mäils"
+ },
+ {
+  "word": "Audits",
+  "say": "Oodits"
+ },
+ {
+  "word": "Audit",
+  "say": "Oodit"
+ },
+ {
+  "word": "Terminals",
+  "say": "Törminels"
+ },
+ {
+  "word": "Terminal",
+  "say": "Törminel"
+ },
+ {
+  "word": "Agents",
+  "say": "Äitschents"
+ },
+ {
+  "word": "Haiku",
+  "say": "Hai-ku"
+ },
+ {
+  "word": "Sonnet",
+  "say": "Sonnett"
+ },
+ {
+  "word": "OpenRouter",
+  "say": "Open Rauter"
+ },
+ {
+  "word": "DeepSeek",
+  "say": "Diep Siek"
+ },
+ {
+  "word": "Gemini",
+  "say": "Dschemini"
+ },
+ {
+  "word": "OpenAI",
+  "say": "Open Ei Ei"
+ },
+ {
+  "word": "Anthropic",
+  "say": "Änthroppik"
+ },
+ {
+  "word": "WebSockets",
+  "say": "Wepp Sockets"
+ },
+ {
+  "word": "WebSocket",
+  "say": "Wepp Socket"
+ },
+ {
+  "word": "Compose",
+  "say": "Kompohs"
+ },
+ {
+  "word": "Vite",
+  "say": "Wiet"
+ },
+ {
+  "word": "React",
+  "say": "Riäckt"
+ },
+ {
+  "word": "TypeScript",
+  "say": "Teip Skript"
+ },
+ {
+  "word": "JavaScript",
+  "say": "Dschawa Skript"
+ },
+ {
+  "word": "Python",
+  "say": "Paisen"
+ },
+ {
+  "word": "Node",
+  "say": "Nohd"
+ },
+ {
+  "word": "Repos",
+  "say": "Rippos"
+ },
+ {
+  "word": "Repo",
+  "say": "Rippo"
+ },
+ {
+  "word": "Main",
+  "say": "Mäin"
+ },
+ {
+  "word": "Logs",
+  "say": "Loggs"
+ },
+ {
+  "word": "Log",
+  "say": "Logg"
+ },
+ {
+  "word": "Cache",
+  "say": "Käsch"
+ },
+ {
+  "word": "Streaming",
+  "say": "Strieming"
+ },
+ {
+  "word": "Stream",
+  "say": "Striem"
+ },
+ {
+  "word": "Chatbot",
+  "say": "Tschätt Bott"
+ },
+ {
+  "word": "Hotfix",
+  "say": "Hott Fix"
+ },
+ {
+  "word": "Releases",
+  "say": "Rilieses"
+ },
+ {
+  "word": "Release",
+  "say": "Rilies"
+ },
+ {
+  "word": "Workspace",
+  "say": "Wörk Späis"
+ },
+ {
+  "word": "Pipeline",
+  "say": "Paip Lain"
+ },
+ {
+  "word": "Online",
+  "say": "Onn Lain"
+ },
+ {
+  "word": "Offline",
+  "say": "Off Lain"
+ },
+ {
+  "word": "Shortcut",
+  "say": "Schort Katt"
+ },
+ {
+  "word": "Notifications",
+  "say": "Nohtifikäischens"
+ },
+ {
+  "word": "Notification",
+  "say": "Nohtifikäischen"
+ },
+ {
+  "word": "Xcode",
+  "say": "Ex Kohd"
+ },
+ {
+  "word": "ElevenLabs",
+  "say": "Ilewen Läbs"
+ },
+ {
+  "word": "Telegram",
+  "say": "Telegramm"
+ },
+ {
+  "word": "Whisper",
+  "say": "Wisper"
+ },
+ {
+  "word": "Piper",
+  "say": "Paiper"
+ },
+ {
+  "word": "Queue",
+  "say": "Kju"
+ },
+ {
+  "word": "Retry",
+  "say": "Ri-trai"
+ },
+ {
+  "word": "Checks",
+  "say": "Tschecks"
+ },
+ {
+  "word": "Check",
+  "say": "Tscheck"
+ },
+ {
+  "word": "Crash",
+  "say": "Kräsch"
+ }
+]
