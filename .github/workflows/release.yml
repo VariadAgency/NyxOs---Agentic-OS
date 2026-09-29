@@ -23,6 +23,9 @@ jobs:
           node-version: 24
           # no dependency cache for a release build: a cache written by another run must not end up in a release
       - run: pnpm install --frozen-lockfile
+      # The bridge drives terminals through tmux; its tests need it just like a user's machine (install.sh installs it).
+      - name: Install tmux
+        run: command -v tmux || { if [ "$RUNNER_OS" = macOS ]; then brew install tmux; else sudo apt-get update && sudo apt-get install -y tmux; fi; }
       - name: Tag matches package.json
         run: test "v$(node -p 'require("./package.json").version')" = "${GITHUB_REF_NAME}"
       - run: pnpm test

@@ -25,6 +25,9 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # The bridge drives terminals through tmux; its tests need it just like a user's machine (install.sh installs it).
+      - name: Install tmux
+        run: command -v tmux || { if [ "$RUNNER_OS" = macOS ]; then brew install tmux; else sudo apt-get update && sudo apt-get install -y tmux; fi; }
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm test

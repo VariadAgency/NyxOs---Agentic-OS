@@ -2,7 +2,7 @@
 // correctly AND safely – checked with a real shell (sh), not only by comparing text. The commands must match the real
 // project (install.sh, nyxos, infra/, the bridge's install, the service names).
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DEFAULT_HOSTING_FORMS, DomainFormSchema, ProviderFormSchema, ServerFormSchema, t, type HostingForms } from "@nyxos/shared";
@@ -71,7 +71,8 @@ describe(".env command", () => {
     const env = readFileSync(join(dir, ".env"), "utf8");
     expect(env.split("\n").filter(Boolean)).toEqual(["NYXOS_DB_PASSWORD=secret", "NTFY_TOKEN=abc", "NYXOS_ALLOWED_HOSTS=alt.ts.net,nyxos.tail1234.ts.net", "NYXOS_AUTH_READS=1"]);
     expect(sh(`ls -a ${shq(dir)}`)).toMatch(/\.env\.bak-\d{14}/);
-    expect(sh(`stat -f %Lp ${shq(join(dir, ".env"))} 2>/dev/null || stat -c %a ${shq(join(dir, ".env"))}`).trim()).toBe("600");
+    // Rechte über Node statt `stat`: `stat -f` heißt unter Linux „Dateisystem“ und gelingt dort mit anderer Ausgabe.
+    expect((statSync(join(dir, ".env")).mode & 0o777).toString(8)).toBe("600");
   });
 
   it("ein böser Wert landet wörtlich in der .env und wird nie ausgeführt", () => {
