@@ -259,20 +259,21 @@ TTS_VOICES: dict[str, ModelSpec] = {
 DEFAULT_STT = "parakeet-tdt-0.6b-v3-int8"
 # Rückfall-Stimme (schnell, klein, immer dabei): springt automatisch ein, wenn die gewünschte Stimme nicht bereit ist.
 # Server-Messung: erster Ton 150 ms, RTF 0,037.
-DEFAULT_TTS = "de_DE-thorsten-medium"
+# German main voice is Thorsten (clear, Piper "high"). It is also the fallback: if it fails, the next German voice
+# of the list takes over (Jürgen). The other Thorsten variants (low, medium, emphatic) are neither loaded nor offered
+# for import (their entries stay only for old volumes).
+DEFAULT_TTS = "de_DE-thorsten-high"
 FALLBACK_TTS = DEFAULT_TTS
-# Reihenfolge = Vorzug. Die erste bereite Stimme, die schnell genug ist, spricht (Pocket zuerst: klingt
-# natürlicher); Umstellen ohne Neubau über NYX_TTS_DEFAULT bzw. NYX_TTS_VOICES (Compose, dann `up -d`).
-# Englisch hat eigene Standard- und Rückfall-Stimme (Env NYX_TTS_DEFAULT_EN).
+RETIRED_TTS = ("de_DE-thorsten-low", "de_DE-thorsten-medium", "de_DE-thorsten_emotional-medium")
+# Order = preference. Change without rebuild via NYX_TTS_DEFAULT or NYX_TTS_VOICES.
+# English has its own default and fallback voice (env NYX_TTS_DEFAULT_EN).
 DEFAULT_TTS_EN = "pocket-en-george"
 FALLBACK_TTS_EN = "en_US-ljspeech-high"
 DEFAULT_TTS_VOICES = [
-    "pocket-juergen",
+    DEFAULT_TTS,
+    "pocket-juergen",  # second choice: more natural, streams
     DEFAULT_TTS_EN,
     FALLBACK_TTS_EN,
-    DEFAULT_TTS,
-    "de_DE-thorsten-high",
-    "de_DE-thorsten_emotional-medium",
     "de_DE-kerstin-low",
     "de_DE-ramona-low",
     "de_DE-eva_k-x_low",
@@ -286,4 +287,4 @@ DEFAULT_TTS_VOICES = [
 # (Spielfigur), miro/dii (Lizenz unklar), mls (kein sherpa-onnx-Paket).
 IMPORT_URL_RE = r"^https://github\.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-([a-z]{2}_[A-Z]{2}-[A-Za-z0-9_]+-(?:x_low|low|medium|high))\.tar\.bz2$"
 # Eigene, echt deutsche Stimmen zuerst; die Pocket-Stimmen englischer Sprecher (Vera/Michael/Marius) nur auf Wunsch.
-IMPORTABLE_TTS = [v for v in TTS_VOICES if TTS_VOICES[v].kind == "tts"]
+IMPORTABLE_TTS = [v for v in TTS_VOICES if TTS_VOICES[v].kind == "tts" and v not in RETIRED_TTS]

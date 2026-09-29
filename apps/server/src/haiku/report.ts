@@ -122,7 +122,7 @@ async function gatherFacts(db: Db, kind: "briefing" | "recap", now: Date, snap?:
     add(t("Nutzung"), t("Alle heute aktiven Sessions zusammen: {amount} Tokens seit ihrem Start (nicht nur heute).", { amount }), active.slice(0, 3).map(sessionSource));
     //: „Haiku hat dich 54 Mal aufgerufen“ – die Richtung war verdreht. Es sind Läufe VON Haiku.
     const cost = (haiku?.costUsd ?? 0).toLocaleString(locale(), { minimumFractionDigits: 3, maximumFractionDigits: 3, useGrouping: false });
-    add(t("Nutzung"), t("Nyx lief heute {n} Mal (Chat, Berichte, Rundgang) – Gegenwert {cost} USD.", { n: haiku?.calls ?? 0, cost }), [{ kind: "usage", id: `haiku:${today}`, label: t("Nyx-Verbrauch heute"), href: "/einstellungen/haiku" }]);
+    add(t("Nutzung"), t("Nyx lief heute {n} Mal (Chat, Berichte, Rundgang) – Gegenwert {cost} USD.", { n: haiku?.calls ?? 0, cost }), [{ kind: "usage", id: `haiku:${today}`, label: t("Nyx-Verbrauch heute"), href: "/einstellungen/nyx/motor" }]);
   }
   return { facts, period: { periodLabel, activeInPeriod: active.length, closedInPeriod: closed.length } };
 }

@@ -61,12 +61,12 @@ export function MoveDialog({ move, onConfirm, onCancel, pending }: MoveDialogPro
   const anyConditionPossible = dims.some(({ result }) => result?.condition);
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center cc-scrim p-4" role="presentation" onClick={onCancel}>
+    <div className="fixed inset-0 z-50 grid place-items-center cc-scrim cc-sheet-wrap p-4" role="presentation" onClick={onCancel}>
       <div
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="move-dialog-title"
-        className="grid w-full max-w-md gap-3 rounded-2xl border border-a-line bg-a-p2 p-4 shadow-pop"
+        className="cc-sheet grid w-full max-w-md gap-3 rounded-2xl border border-a-line bg-a-p2 p-4 shadow-pop"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id="move-dialog-title" className="font-display text-callout font-semibold text-a-ink">

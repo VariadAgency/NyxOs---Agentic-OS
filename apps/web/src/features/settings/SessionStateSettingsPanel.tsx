@@ -3,6 +3,7 @@
 import { DEFAULT_CRASHED_MAX_HOURS, t, type SessionStateSettings } from "@nyxos/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { SectionTitle } from "../../components/ui/Card";
 import { writeJson } from "../../lib/api";
 
 const URL = "/api/settings/session-state";
@@ -35,13 +36,15 @@ export function SessionStateSettingsPanel() {
   });
 
   return (
-    <section aria-label={t("Sessions")} className="min-w-0 space-y-3 rounded-xl border border-a-line bg-a-p p-4">
-      <h3 className="font-display text-headline text-a-ink">{t("Sessions")}</h3>
+    // Own heading instead of a second „Sessions“ right below the page title „Sessions“.
+    <section aria-labelledby="crashed-title" className="grid min-w-0 gap-2">
+      <SectionTitle>
+        <span id="crashed-title">{t("Abgestürzte Sessions")}</span>
+      </SectionTitle>
       <p className="text-callout text-a-mut">
-        {t(
-          "Ist der Prozess einer Session weg, ohne dass sie sauber beendet wurde, gilt sie als abgestürzt. Nach dieser Zeit zählt sie nicht mehr dazu und steht unter „Beendet“ – im Überblick, im Briefing und bei „Braucht dich“. Standard: {n} Stunden (ein Arbeitstag mit Abend).",
-          { n: DEFAULT_CRASHED_MAX_HOURS },
-        )}
+        {t("Ist der Prozess einer Session ohne sauberes Ende weg, gilt sie als abgestürzt. Nach dieser Zeit zählt sie als „Beendet“ (Überblick, Briefing, „Braucht dich“). Standard: {n} Stunden.", {
+          n: DEFAULT_CRASHED_MAX_HOURS,
+        })}
       </p>
       {isLoading && <p className="text-callout text-a-mut">{t("Lädt …")}</p>}
       {isError && (
@@ -51,7 +54,7 @@ export function SessionStateSettingsPanel() {
       )}
       {data && (
         <form
-          className="flex min-w-0 flex-wrap items-center gap-2 text-callout text-a-ink"
+          className="flex min-w-0 flex-wrap items-center gap-2 rounded-xl border border-a-line bg-a-p p-3 text-callout text-a-ink"
           onSubmit={(e) => {
             e.preventDefault();
             if (valid) save.mutate(hours);

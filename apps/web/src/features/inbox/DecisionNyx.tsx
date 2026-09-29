@@ -121,7 +121,7 @@ export function NyxAskChip({ nyx, compact = false, label: labelProp }: { nyx: De
         nyx.toggle();
       }}
       className={cn(
-        compact ? "inline-grid h-7 w-7 shrink-0 place-items-center rounded-full border transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-a-acc" : CHIP,
+        compact ? "cc-hit inline-grid h-7 w-7 shrink-0 place-items-center rounded-full border transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-a-acc" : cn(CHIP, "pointer-coarse:min-h-11"),
         nyx.open ? "border-a-violet/60 bg-a-violet/15 text-a-ink" : "border-a-violet/35 bg-a-violet/8 text-a-ink hover:border-a-violet/60 hover:bg-a-violet/15",
       )}
     >

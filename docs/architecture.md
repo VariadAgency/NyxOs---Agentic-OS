@@ -103,7 +103,7 @@ setting stored in the database (`lang`), applied by the server at start and by t
    definition and restarts the server. Only when `/health` answers is the bridge re-registered.
 4. The last three versions are kept; `nyxos update --version <old>` rolls back.
 
-Before the placeholder repository `OWNER/nyxos` is replaced (see [releasing](releasing.md)), no update check
+Before the placeholder repository `VariadAgency/NyxOs---Agentic-OS` is replaced (see [releasing](releasing.md)), no update check
 runs.
 
 ## Security model
@@ -118,6 +118,7 @@ runs.
 | Nyx guard rails | Risky actions (delete, merge, push, deploy, migration, closing a session, approvals) need a confirmation card the user clicks. Sign-in, passkeys and keys are not reachable through Nyx's tools. Text from outside (transcripts, web pages, Telegram) is fenced and treated as data, never as instructions. |
 | Approval hook | A guard hook in Claude Code / Codex pauses commands on the approval list and waits for your decision in NyxOS. |
 | Private URLs | In server mode, fetches to private network addresses are blocked unless explicitly allowed. |
+| Feedback & support | Reports go only to the configured support service (`https://`, no redirects, 10 s, 64 KB answers). Diagnostics are cleaned in the browser and again on the server. The donation page runs in a sandboxed iframe from exactly the support origin (`frame-src`), and only its `postMessage` from that origin and frame counts. Details: [support API](support-api.md). |
 | Hooks are additive | NyxOS appends to `~/.claude/settings.json` and `~/.codex/hooks.json` after a backup and removes only its own entries on uninstall. |
 
 ## `~/.nyxos` layout

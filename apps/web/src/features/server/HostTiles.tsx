@@ -447,7 +447,9 @@ export function HostSection({ local = false }: { local?: boolean }) {
   if (error || !data) return <HostUnavailable error={error} />;
   return (
     <div className="grid gap-3">
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,360px),1fr))] gap-3" data-testid="host-details">
+      {/* Detail cards side by side differ in length – each is as tall as its content (`items-start`) instead of up to
+          90 px of empty space at the bottom of the shorter card. */}
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,360px),1fr))] items-start gap-3" data-testid="host-details">
         <CpuCard h={data} local={local} />
         <MemCard h={data} local={local} />
         <DiskCard h={data} local={local} />

@@ -19,6 +19,11 @@ export interface AskNyxAnswer {
 }
 
 const CACHE_MS = 10 * 60_000;
+/** eine fertige Antwort-Karte schließt sich nach einer Minute von selbst. */
+export const ASK_NYX_AUTO_CLOSE_MS = 60_000;
+
+/** Es steht immer nur EINE Antwort-Karte da – eine neue Frage schließt die vorige (egal welcher Knopf). */
+let activeCard: { id: symbol; close: () => void } | null = null;
 const MAX_FACTS = 3000;
 const cache = new Map<string, { answer: AskNyxAnswer; at: number }>();
 
@@ -51,6 +56,8 @@ export interface AskNyx {
   replay(): void;
   stopSpeaking(): void;
   reset(): void;
+  /** Zeiger/Fokus auf der Karte: das automatische Schließen wartet. */
+  hold(on: boolean): void;
 }
 
 export function useAskNyx(question: string, facts?: string | null): AskNyx {
@@ -65,6 +72,9 @@ export function useAskNyx(question: string, facts?: string | null): AskNyx {
   const [speaking, setSpeaking] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const speakerRef = useRef<Speaker | null>(null);
+  const idRef = useRef(Symbol("ask-nyx"));
+  const resetRef = useRef<() => void>(() => {});
+  const [held, setHeld] = useState(false);
 
   const stopSpeaking = useCallback(() => {
     speakerRef.current?.cancel();
@@ -95,6 +105,9 @@ export function useAskNyx(question: string, facts?: string | null): AskNyx {
   );
 
   const ask = useCallback(() => {
+    // Neue Frage: eine andere offene Karte schließt sich, diese wird die aktive.
+    if (activeCard && activeCard.id !== idRef.current) activeCard.close();
+    activeCard = { id: idRef.current, close: () => resetRef.current() };
     abortRef.current?.abort();
     setError(null);
     const hit = cachedAnswer(message);
@@ -147,22 +160,34 @@ export function useAskNyx(question: string, facts?: string | null): AskNyx {
   }, [message, speak]);
 
   const reset = useCallback(() => {
+    if (activeCard?.id === idRef.current) activeCard = null;
     abortRef.current?.abort();
     stopSpeaking();
     setState("idle");
     setAnswer(null);
     setPartial("");
     setError(null);
+    setHeld(false);
   }, [stopSpeaking]);
+  resetRef.current = reset;
+
+  // Fertig (Antwort oder Fehler), Nyx spricht nicht mehr, niemand hält die Karte: nach einer Minute schließen.
+  const done = state === "answered" || state === "error";
+  useEffect(() => {
+    if (!done || speaking || held) return;
+    const timer = setTimeout(() => resetRef.current(), ASK_NYX_AUTO_CLOSE_MS);
+    return () => clearTimeout(timer);
+  }, [done, speaking, held]);
 
   // Seite verlassen: Frage abbrechen, Stimme aus.
   useEffect(
     () => () => {
+      if (activeCard?.id === idRef.current) activeCard = null;
       abortRef.current?.abort();
       speakerRef.current?.cancel();
     },
     [],
   );
 
-  return { state, answer, partial, error, speaking, ask, replay: () => answer && speak(answer), stopSpeaking, reset };
+  return { state, answer, partial, error, speaking, ask, replay: () => answer && speak(answer), stopSpeaking, reset, hold: setHeld };
 }

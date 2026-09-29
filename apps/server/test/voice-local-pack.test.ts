@@ -22,7 +22,7 @@ const http = require("node:http");
 const fs = require("node:fs");
 fs.writeFileSync("env.json", JSON.stringify({ env: process.env, argv: process.argv.slice(2) }));
 const part = (id) => ({ id, state: "ready", ready: true, bytesDone: 1, bytesTotal: 1, error: null, loadMs: 1, license: "x", label: id, engine: "piper", language: "de" });
-const status = { stt: { ...part("parakeet-tdt-0.6b-v3-int8"), model: "parakeet-tdt-0.6b-v3-int8", language: "auto" }, tts: { ...part("de_DE-thorsten-medium"), voice: "de_DE-thorsten-medium", voiceEn: "en_US-ljspeech-high", voices: [part("de_DE-thorsten-medium")] }, threads: 1, uptimeS: 1 };
+const status = { stt: { ...part("parakeet-tdt-0.6b-v3-int8"), model: "parakeet-tdt-0.6b-v3-int8", language: "auto" }, tts: { ...part("de_DE-thorsten-high"), voice: "de_DE-thorsten-high", voiceEn: "en_US-ljspeech-high", voices: [part("de_DE-thorsten-high")] }, threads: 1, uptimeS: 1 };
 http.createServer((req, res) => {
   if (req.headers.authorization !== "Bearer " + process.env.NYX_TOKEN) { res.writeHead(401, { "content-type": "application/json" }); return res.end('{"error":"unauthorized","message":"x"}'); }
   if (req.url === "/health") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify(status)); }
@@ -134,12 +134,12 @@ describe("lokales Stimmen-Paket", () => {
     expect(env.NYX_TOKEN?.length ?? 0).toBeGreaterThanOrEqual(32);
     expect(env.NYX_PARENT_PID).toBe(String(process.pid));
     expect(env.NYX_MODELS_DIR).toBe(join(home, "voice", "models"));
-    expect(env.NYX_TTS_VOICES).toBe("de_DE-thorsten-medium,en_US-ljspeech-high");
+    expect(env.NYX_TTS_VOICES).toBe("de_DE-thorsten-high,en_US-ljspeech-high");
     expect(env.NYX_FFMPEG).toBe("/x/ffmpeg");
     expect(Object.keys(env).filter((k) => k.startsWith("NYXOS_"))).toEqual([]);
     // ohne Schlüssel kommt niemand an den Dienst, mit dem Paket-Backend schon.
     expect((await fetch(`http://127.0.0.1:${svc.port}/health`)).status).toBe(401);
-    expect((await pack.backend.status()).tts.voice).toBe("de_DE-thorsten-medium");
+    expect((await pack.backend.status()).tts.voice).toBe("de_DE-thorsten-high");
   });
 
   it("startet nach einem Absturz neu und beendet den Dienst beim Herunterfahren", async () => {

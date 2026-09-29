@@ -115,7 +115,7 @@ export interface ChatSendResult {
 /** Ein Eintrag der Zustell-Warteschlange („geht raus, sobald die Session wartet“). */
 export interface SessionDeliveryView {
   id: number;
-  kind: "compact" | "approval" | "inbox" | "haiku_answer" | "chat";
+  kind: "compact" | "approval" | "inbox" | "haiku_answer" | "chat" | "control";
   text: string;
   /** `sending` = die Brücke tippt gerade (nicht mehr zurückziehbar). */
   status: "queued" | "sending" | "sent" | "expired" | "failed" | "cancelled";

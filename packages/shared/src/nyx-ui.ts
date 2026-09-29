@@ -20,7 +20,13 @@ export const NyxUiTargetActionSchema = z.enum(["click", "focus", "type", "scroll
 export type NyxUiTargetAction = z.infer<typeof NyxUiTargetActionSchema>;
 
 export const NyxUiCommandSchema = z.union([
-  z.object({ action: z.literal("navigate"), route: NyxUiRouteSchema }),
+  z.object({
+    action: z.literal("navigate"),
+    route: NyxUiRouteSchema,
+    /** Klickpfad aus der NyxOS-Karte (data-nyx-Kennungen ab der Leiste, z. B. `nav:settings`, `settings:mitteilungen`,
+     * `settings-sub:telegram`). Der Browser klickt ihn sichtbar ab – nie ein stiller Routensprung. */
+    via: z.array(z.string().trim().min(1).max(200)).max(12).optional(),
+  }),
   z.object({
     action: NyxUiTargetActionSchema,
     /** `data-nyx`-Kennung (auch mit `*` am Ende = erstes passendes), `item:<art>[:<rang>|:<text>]` (Listeneintrag,

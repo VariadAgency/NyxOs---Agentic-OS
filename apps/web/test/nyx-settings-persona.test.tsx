@@ -3,7 +3,8 @@ import { BUILTIN_NYX_PRESETS, DEFAULT_NYX_PROFILE, type NyxProfile } from "@nyxo
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { NyxSettingsPage } from "../src/features/settings/nyx/NyxSettingsPage";
+import { NyxAboutPanel, NyxPersonalityPanel, NyxSaveBar } from "../src/features/settings/nyx/NyxProfilePanels";
+import { NyxProfileProvider } from "../src/features/settings/nyx/NyxProfileContext";
 import { previewAnswer } from "../src/features/settings/nyx/preview";
 import { __primeAuthForTests, __resetAuthForTests } from "../src/features/terminal/authClient";
 import { jsonResponse, renderWithClient } from "./helpers";
@@ -52,8 +53,13 @@ function stub(profile: NyxProfile = DEFAULT_NYX_PROFILE) {
 
 const render = () =>
   renderWithClient(
+    // Persönlichkeit and Über dich are own subpages with a shared draft – rendered together here.
     <MemoryRouter>
-      <NyxSettingsPage />
+      <NyxProfileProvider>
+        <NyxPersonalityPanel />
+        <NyxAboutPanel />
+        <NyxSaveBar />
+      </NyxProfileProvider>
     </MemoryRouter>,
   );
 
@@ -61,7 +67,6 @@ describe("Seite Einstellungen → Nyx", () => {
   it("zeigt Profil, Persönlichkeit, Regler mit Beschriftung und alle Vorlagen", async () => {
     stub({ ...DEFAULT_NYX_PROFILE, user: { ...DEFAULT_NYX_PROFILE.user, name: "Alex" } });
     render();
-    expect(await screen.findByRole("heading", { name: "Nyx", level: 1 })).toBeInTheDocument();
     await screen.findByTestId("nyx-preview");
     expect(screen.getByLabelText("Name")).toHaveValue("Alex");
     expect(screen.getByLabelText("Anrede")).toBeInTheDocument();

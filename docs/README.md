@@ -19,6 +19,7 @@ New here? Start with **Getting started**, then take the **Guide** tour.
 | [Architecture](architecture.md) | Components, data flow, local vs. server mode, database, i18n, updates, security |
 | [Translations](translations.md) | How the German-source i18n works and how to add a language |
 | [Releasing](releasing.md) | Version bump, tag, what the release workflow does |
+| [Support API](support-api.md) | What the project website's support service must offer for bug reports, ideas and donations |
 | [CONTRIBUTING.md](../CONTRIBUTING.md) | Development setup, tests, conventions |
 | [AGENTS.md](../AGENTS.md) | Short rules for AI coding agents working on this repository |
 | [SECURITY.md](../SECURITY.md) | Reporting vulnerabilities |

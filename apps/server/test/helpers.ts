@@ -164,12 +164,16 @@ export async function setup(
     skills?: AppDeps["skills"];
     // Abwesenheit: Uhr für Anwesenheit/Bündelung.
     away?: AppDeps["away"];
+    // Betrieb & Zugriff (mode, network of the check, clock, computer name).
+    hosting?: AppDeps["hosting"];
     // Demo: run mode (e.g. a demo instance), how Nyx answers there, a fake demo launcher.
     appInfo?: AppDeps["appInfo"];
     demo?: AppDeps["demo"];
     demoLauncher?: AppDeps["demoLauncher"];
     // Lokales Stimmen-Paket (Knopf „installieren“, Sätze ohne Docker).
     voicePack?: AppDeps["voicePack"];
+    // Feedback & Unterstützen: Attrappe der Meldestelle, Umgebung, DNS, Uhr.
+    support?: AppDeps["support"];
   } = {},
 ) {
   let client: PGlite;
@@ -213,10 +217,13 @@ export async function setup(
     telegram: opts.telegram,
     skills: opts.skills,
     away: opts.away,
+    // Without an own value: never the real network, fixed computer name.
+    hosting: opts.hosting ?? { fetchImpl: () => Promise.reject(new Error("no network in tests")), hostName: null },
     appInfo: opts.appInfo,
     demo: opts.demo,
     demoLauncher: opts.demoLauncher,
     ...(opts.voicePack ? { voicePack: opts.voicePack } : {}),
+    ...(opts.support ? { support: opts.support } : {}),
   });
   appBackgrounds.push(built.background);
   const login = await createAuthSession(db, null);

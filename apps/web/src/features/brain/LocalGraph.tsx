@@ -94,7 +94,7 @@ export function LocalGraph({ nodeId, initialDepth = 1, heightClass = "h-[320px]"
             onOpen={openNode}
           />
         ) : null}
-        {selected ? <NodeCard node={selected} colors={settings.colors} onClose={closeCard} /> : null}
+        {selected && ready ? <NodeCard node={selected} graph={ready.graph} colors={settings.colors} onClose={closeCard} /> : null}
       </div>
     </section>
   );

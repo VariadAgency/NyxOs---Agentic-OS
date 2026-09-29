@@ -645,6 +645,34 @@ export class DigestService {
     return this.ensureRows(rows);
   }
 
+  /**
+   * Only the STORED digests of a session (loaded light), without waiting for a computation — for the live agents
+   * bar, which asks every few seconds. Missing/outdated versions are started in the background (throttled, see
+   * `schedule`); until then the live numbers come from the events.
+   */
+  async peekSession(sessionKey: string): Promise<{ stored: StoredDigest[]; archivePaths: string[] }> {
+    const rows = await this.db
+      .select({ id: archive.id, sessionKey: archive.sessionKey, tool: archive.tool, path: archive.path, sha256: archive.sha256, storedPath: archive.storedPath })
+      .from(archive)
+      .where(eq(archive.sessionKey, sessionKey));
+    if (rows.length === 0) return { stored: [], archivePaths: [] };
+    const light = sql`(${archiveDigests.digest} - 'prompt' - 'result') || jsonb_build_object('prompt', left(${archiveDigests.digest}->>'prompt', ${LIGHT_TEXT_MAX}), 'result', left(${archiveDigests.digest}->>'result', ${LIGHT_TEXT_MAX}))`;
+    const found = await this.db
+      .select({ archiveId: archiveDigests.archiveId, sha256: archiveDigests.sha256, version: archiveDigests.version, agentId: archiveDigests.agentId, digest: light.mapWith(archiveDigests.digest) })
+      .from(archiveDigests)
+      .where(eq(archiveDigests.sessionKey, sessionKey));
+    const byId = new Map(found.map((s) => [s.archiveId, s]));
+    const stored: StoredDigest[] = [];
+    for (const row of rows) {
+      const sessionId = row.sessionKey.slice(row.sessionKey.indexOf(":") + 1);
+      if (!archiveRole(row.tool as Tool, sessionId, row.path)) continue;
+      const hit = byId.get(row.id);
+      if (hit && hit.version === DIGEST_VERSION) stored.push({ archiveId: row.id, sessionKey: row.sessionKey, agentId: hit.agentId, digest: hit.digest as ArchiveDigest });
+      if (!hit || hit.version !== DIGEST_VERSION || hit.sha256 !== row.sha256) this.schedule(row);
+    }
+    return { stored, archivePaths: rows.map((r) => r.path) };
+  }
+
   private async ensureRows(rows: ArchiveRow[]): Promise<StoredDigest[]> {
     if (rows.length === 0) return [];
     // Leicht laden: Auftrag/Ergebnis können je Agent 100 000+ Zeichen lang sein — für Listen reicht

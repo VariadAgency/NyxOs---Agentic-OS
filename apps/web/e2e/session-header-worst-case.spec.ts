@@ -135,19 +135,21 @@ for (const width of [1024, 1180, 1280, 1440, 1920]) {
     expect(m.headHeight, info).toBeLessThanOrEqual(m.ctl + 20);
     for (const h of m.buttonHeights) expect(h, info).toBeLessThanOrEqual(m.ctl + 1);
 
-    // Erreichbar: „Schließen“ in der Zeile oder im Menü, die Session-Knöpfe in der Zeile oder im Menü.
+    // Erreichbar: „Schließen“ in der Zeile oder im Menü, „Session prüfen“ in der Zeile oder im Menü.
+    // „Kontext komprimieren“ steht nicht mehr im Kopf, sondern in den Session-Infos (Steuerung).
     const inlineClose = head.getByRole("button", { name: "Schließen", exact: true });
     const more = head.getByRole("button", { name: "Weitere Aktionen" });
     if (!(await inlineClose.isVisible())) {
       await more.click();
       await expect(page.getByRole("menuitem", { name: /Schließen/ })).toBeVisible();
-      await expect(page.getByRole("menuitem", { name: /Kontext komprimieren/ })).toBeVisible();
+      await expect(page.getByRole("menuitem", { name: /Session zusammenfassen/ })).toBeVisible();
       await page.keyboard.press("Escape");
-    } else if (!(await head.getByRole("button", { name: /Kontext komprimieren/ }).isVisible())) {
+    } else if (!(await head.getByRole("button", { name: /Session zusammenfassen/ }).isVisible())) {
       await more.click();
-      await expect(page.getByRole("menuitem", { name: /Kontext komprimieren/ })).toBeVisible();
+      await expect(page.getByRole("menuitem", { name: /Session zusammenfassen/ })).toBeVisible();
       await page.keyboard.press("Escape");
     }
+    await expect(head.getByRole("button", { name: /komprimieren/i })).toHaveCount(0);
     if (width === 1280) await head.screenshot({ path: `${SHOTS}/session-header-worst-case-1280.png` });
   });
 }

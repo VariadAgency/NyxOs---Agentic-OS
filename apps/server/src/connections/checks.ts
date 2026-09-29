@@ -472,7 +472,7 @@ const haikuChecks: Def[] = [
     run: async (ctx) => {
       if (!ctx.haiku) return { state: "fail", cause: "Nyx ist in diesem Server nicht eingebaut.", fix: "NyxOS aktualisieren.", command: UPDATE_CMD };
       const s = await ctx.haiku.status();
-      if (s.engine.kind === "off") return { state: "warn", result: "ausgeschaltet", cause: "Nyx ist ausgeschaltet.", fix: "Einstellungen → Nyx: Motor „Claude-CLI (Max-Plan)“ wählen." };
+      if (s.engine.kind === "off") return { state: "warn", result: "ausgeschaltet", cause: "Nyx ist ausgeschaltet.", fix: "Einstellungen → Nyx → Motor & Verbrauch: „Claude-CLI (Max-Plan)“ wählen." };
       if (!s.engine.available && waitsForToken(ctx)) return { ...HAIKU_WAITS, result: s.engine.kind };
       // Lokal gibt es nur diesen einen Punkt für Nyx (kein Token, kein Arbeiter): fehlt das Claude-Programm,
       // steht hier einmal der Befehl zum Installieren — derselbe wie im Onboarding.
@@ -650,11 +650,11 @@ const opsChecks: Def[] = [
       const st = await ctx.telegram.status();
       // Lokal ist Telegram freiwillig: ohne Token ist nichts kaputt.
       if (st.state === "no_token" && isLocal(ctx)) return OPTIONAL_OFF;
-      if (st.state === "no_token") return { state: "user", result: "wartet auf Bot-Token", cause: "Wartet auf ein Bot-Token (@BotFather → /newbot).", fix: "Einstellungen → Telegram → Token eintragen." };
-      if (st.state === "error") return { state: "fail", result: st.sentence, cause: st.sentence, fix: st.fix ?? "Einstellungen → Telegram prüfen." };
+      if (st.state === "no_token") return { state: "user", result: "wartet auf Bot-Token", cause: "Wartet auf ein Bot-Token (@BotFather → /newbot).", fix: "Einstellungen → Mitteilungen → Telegram → Token eintragen." };
+      if (st.state === "error") return { state: "fail", result: st.sentence, cause: st.sentence, fix: st.fix ?? "Einstellungen → Mitteilungen → Telegram prüfen." };
       if (st.state === "starting") return { state: "warn", result: "verbindet …", cause: "Der Bot verbindet sich gerade mit Telegram.", fix: "Kurz warten und neu prüfen." };
       const bot = st.bot ? `@${st.bot.username}` : t("verbunden");
-      if (!st.paired) return { state: "user", result: t("{bot} · nicht gekoppelt", { bot }), cause: "Der Bot läuft, ist aber noch nicht mit deinem Handy gekoppelt.", fix: "Einstellungen → Telegram → „Kopplungs-Code erzeugen“ und dem Bot /start <code> schicken." };
+      if (!st.paired) return { state: "user", result: t("{bot} · nicht gekoppelt", { bot }), cause: "Der Bot läuft, ist aber noch nicht mit deinem Handy gekoppelt.", fix: "Einstellungen → Mitteilungen → Telegram → „Kopplungs-Code erzeugen“ und dem Bot /start <code> schicken." };
       return { state: "ok", result: st.voice.ready ? t("{bot} · gekoppelt · Sprache bereit", { bot }) : t("{bot} · gekoppelt", { bot }) };
     },
   },
@@ -851,7 +851,7 @@ const accessChecks: Def[] = [
       const rp = hostname ? t("geöffnet über {url}", { url: `${ctx.requestProto}://${host}` }) : t("Adresse aus dem Aufruf");
       const result = `${rp} · ${t("{passkeys} Passkey(s) · {sessions} aktive Anmeldung(en)", { passkeys, sessions })}${allowed}`;
       if (hostname && (/^[\d.]+$/.test(hostname) || hostname.includes(":"))) return { state: "warn", result, cause: "Über eine IP-Adresse geöffnet — Passkeys brauchen einen Namen.", fix: "NyxOS über http://localhost:47801 öffnen." };
-      if (passkeys === 0) return { state: "user", result, cause: "Es ist noch kein Passkey eingerichtet — ohne ihn gehen keine Aktionen.", fix: "Einstellungen → Anmeldung → „Passkey einrichten“ (den Einrichtungs-Code liefert dieser Befehl).", command: "docker exec nyxos-api node dist/cli.js passkey-setup" };
+      if (passkeys === 0) return { state: "user", result, cause: "Es ist noch kein Passkey eingerichtet — ohne ihn gehen keine Aktionen.", fix: "Einstellungen → Konto & Anmeldung → „Passkey einrichten“ (den Einrichtungs-Code liefert dieser Befehl).", command: "docker exec nyxos-api node dist/cli.js passkey-setup" };
       return { state: "ok", result };
     },
   },

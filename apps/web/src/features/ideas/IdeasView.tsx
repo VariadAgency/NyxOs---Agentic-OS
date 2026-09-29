@@ -223,6 +223,9 @@ function IdeaCard({ idea, onOpen, onPromote, promoting }: { idea: Entry; onOpen:
         }
       }}
       data-testid="idea-card"
+      // Klickpfad der NyxOS-Karte (/ideas/<id> → idea:<id>); data-nyx-href = wohin der Klick führt.
+      data-nyx={`idea:${idea.id}`}
+      data-nyx-href={`/ideas/${idea.id}`}
       data-nyx-item="idea"
       data-nyx-at={idea.updatedAt}
       className="cc-card-deep grid w-full cursor-pointer gap-2 border border-a-line px-4 py-3 text-left hover:bg-a-p2 focus-visible:outline-2 focus-visible:outline-a-acc"

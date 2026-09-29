@@ -88,12 +88,12 @@ export function NewSessionDialog() {
   const close = () => !start.isPending && setOpen(false);
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center cc-scrim p-4" role="presentation" onClick={close}>
+    <div className="fixed inset-0 z-50 grid place-items-center cc-scrim cc-sheet-wrap p-4" role="presentation" onClick={close}>
       <form
         role="dialog"
         aria-modal="true"
         aria-labelledby="new-session-title"
-        className="grid w-full max-w-md gap-3 rounded-2xl border border-a-line bg-a-p2 p-5 shadow-pop"
+        className="cc-sheet grid w-full max-w-md gap-3 rounded-2xl border border-a-line bg-a-p2 p-5 shadow-pop"
         onClick={(e) => e.stopPropagation()}
         onSubmit={(e) => {
           e.preventDefault();

@@ -7,6 +7,7 @@ import { ELEVENLABS_CLONE_MAX_BYTES, ELEVENLABS_MODELS, NYX_LEXICON_MAX_ENTRIES,
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { cn } from "../../../lib/cn";
+import { Advanced } from "../Advanced";
 import { friendlyError } from "../../../lib/friendlyError";
 import { useAppInfo } from "../../../hooks/useAppInfo";
 import { RATE_MAX, RATE_MIN, useNyxSettings } from "../../nyx/tab/settings";
@@ -143,12 +144,8 @@ export function NyxVoiceSettings() {
     play(`local-${v.id}`, { text: sample(v.language === "en" ? "en" : "de", userName), provider: "local", language: v.language, ...(v.language === "en" ? { voiceEn: v.id } : { voice: v.id }), speed: tab.rate });
 
   return (
-    <section id="stimme" aria-label={t("Stimme")} className="grid min-w-0 scroll-mt-4 gap-5 rounded-xl border border-a-line bg-a-p p-4 md:p-5" data-nyx="nyx-stimme-einstellungen">
-      <div className="grid gap-0.5">
-        <h2 className="font-display text-headline text-a-ink">{t("Stimme")}</h2>
-        <p className="text-caption text-a-mut">{t("Wie Nyx klingt: welche Stimme, wie schnell und wie er schwierige Wörter ausspricht. Jede Stimme kannst du vorher anhören.")}</p>
-      </div>
-
+    // Title and explanation are in the header of the subpage „Stimme“.
+    <section aria-label={t("Stimme")} className="grid min-w-0 gap-5 rounded-xl border border-a-line bg-a-p p-4 md:p-5" data-nyx="nyx-stimme-einstellungen">
       {localMode && <VoicePackBlock onState={setPackInstalled} />}
 
       {settingsQ.isError && <p className="text-callout text-a-bad">{friendlyError(settingsQ.error, t("Die Stimmen-Einstellungen ließen sich nicht laden."))}</p>}
@@ -218,8 +215,6 @@ export function NyxVoiceSettings() {
 
       {probe?.state === "failed" && probe.note && probe.key.startsWith("local-") && <p className="-mt-3 text-caption text-a-wait">{probe.note}</p>}
 
-      {showLocalVoices && <ImportBlock importable={statusQ.data?.tts?.importable ?? []} localMode={localMode} onImported={() => void qc.invalidateQueries({ queryKey: VOICE_STATUS_FULL_KEY })} />}
-
       <Block title={t("Tempo")} hint={t("Gilt für alle Stimmen in diesem Browser.")}>
         <div className="flex items-center gap-3">
           <input
@@ -238,7 +233,11 @@ export function NyxVoiceSettings() {
       </Block>
 
       {s && <ElevenLabsBlock settings={s} onSaved={(res) => qc.setQueryData(VOICE_SETTINGS_KEY, res)} probe={probe} play={play} rate={tab.rate} userName={userName} />}
-      {s && <LexiconBlock settings={s} probe={probe} play={play} rate={tab.rate} onSaved={(res) => qc.setQueryData(VOICE_SETTINGS_KEY, res)} />}
+      {/* Rarely needed – loading more voices and the pronunciation dictionary. */}
+      <Advanced id="nyx-stimme" hint={showLocalVoices ? t("Stimmen importieren, Aussprache") : t("Aussprache")}>
+        {showLocalVoices && <ImportBlock importable={statusQ.data?.tts?.importable ?? []} localMode={localMode} onImported={() => void qc.invalidateQueries({ queryKey: VOICE_STATUS_FULL_KEY })} />}
+        {s && <LexiconBlock settings={s} probe={probe} play={play} rate={tab.rate} onSaved={(res) => qc.setQueryData(VOICE_SETTINGS_KEY, res)} />}
+      </Advanced>
       {settingsQ.isLoading && <p className="text-caption text-a-mut">{t("Lädt …")}</p>}
     </section>
   );

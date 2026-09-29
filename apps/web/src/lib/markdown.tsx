@@ -196,7 +196,7 @@ export const Markdown = memo(function Markdown({ text, sources }: { text: string
         }
         if (block.kind === "h") {
           return (
-            <div key={key} className={HEADING_CLASS[block.level ?? 1] ?? HEADING_CLASS[4]}>
+            <div key={key} role="heading" aria-level={block.level ?? 1} className={HEADING_CLASS[block.level ?? 1] ?? HEADING_CLASS[4]}>
               {inline(block.text ?? "")}
             </div>
           );

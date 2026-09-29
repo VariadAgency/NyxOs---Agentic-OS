@@ -132,12 +132,12 @@ function TakeoverDialog(props: { preview: Preview; title: string | null; pending
   );
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center cc-scrim p-4" role="presentation" onClick={props.onCancel}>
+    <div className="fixed inset-0 z-50 grid place-items-center cc-scrim cc-sheet-wrap p-4" role="presentation" onClick={props.onCancel}>
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="takeover-title"
-        className="grid w-full max-w-md gap-3 rounded-2xl border border-a-line bg-a-p2 p-4 shadow-pop"
+        className="cc-sheet grid w-full max-w-md gap-3 rounded-2xl border border-a-line bg-a-p2 p-4 shadow-pop"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => e.key === "Escape" && props.onCancel()}
       >

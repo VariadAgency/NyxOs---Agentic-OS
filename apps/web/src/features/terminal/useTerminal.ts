@@ -9,6 +9,7 @@ import { Terminal, type ITheme } from "@xterm/xterm";
 import { t } from "@nyxos/shared";
 import { useEffect, useRef, useState } from "react";
 import { fetchAuthStatus, onSignedIn, requireLogin } from "./authClient";
+import { ctrlChar } from "./TerminalKeys";
 
 export type TermState = "connecting" | "connected" | "reconnecting" | "offline" | "ended" | "not_attachable" | "login";
 
@@ -67,6 +68,8 @@ export function useTerminal(opts: {
   attachKey?: string | null;
   /** Server-SSH: eigener Kanal-Weg (z. B. `/terminal/ssh/zc-ssh-…`) statt `/terminal/<sessionId>`. */
   wsPath?: string;
+  /** Schriftgröße in px (Handy kleiner, per A−/A+ und Zwei-Finger-Zoom einstellbar). Standard 13. */
+  fontSize?: number;
 }) {
   const enabled = opts.enabled ?? true;
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -80,6 +83,21 @@ export function useTerminal(opts: {
   const applyingServerSize = useRef(false);
   const readOnlyRef = useRef(opts.readOnly);
   readOnlyRef.current = opts.readOnly;
+  /** Eingaben von außen (Tastenzeile, Einfügen) – zeigt auf den Sender der aktuellen Verbindung. */
+  const sendRef = useRef<((d: string) => void) | null>(null);
+  /** „Strg“ der Tastenzeile ist eingerastet → das nächste Zeichen wird zum Steuerzeichen. */
+  const ctrlRef = useRef(false);
+  const [ctrlArmed, setCtrlArmed] = useState(false);
+  const fontSize = opts.fontSize ?? 13;
+  const fontSizeRef = useRef(fontSize);
+  fontSizeRef.current = fontSize;
+  /** Strg anwenden (einmalig) – für Tastatur-Eingaben und Knöpfe der Tastenzeile gleich. */
+  const applyCtrl = (d: string): string => {
+    if (!ctrlRef.current) return d;
+    ctrlRef.current = false;
+    setCtrlArmed(false);
+    return ctrlChar(d) ?? d;
+  };
 
   // Nur nach erfolgreicher Anmeldung neu verbinden (nicht bei jeder Änderung, s. `onSignedIn`).
   useEffect(() => onSignedIn(() => setAuthTick((n) => n + 1)), []);
@@ -90,7 +108,7 @@ export function useTerminal(opts: {
     if (!host) return;
     const term = new Terminal({
       fontFamily: '"IBM Plex Mono", ui-monospace, Menlo, monospace',
-      fontSize: 13,
+      fontSize: fontSizeRef.current,
       lineHeight: 1.15,
       scrollback: 50_000,
       cursorBlink: true,
@@ -194,13 +212,13 @@ export function useTerminal(opts: {
       term.resize(cols, rows);
       applyingServerSize.current = false;
     };
-    disposers.push(
-      term.onData((d) => {
-        if (readOnlyRef.current) return;
-        refitIfNeeded();
-        send({ t: "in", d });
-      }),
-    );
+    const input = (d: string) => {
+      if (readOnlyRef.current) return;
+      refitIfNeeded();
+      send({ t: "in", d: applyCtrl(d) });
+    };
+    sendRef.current = input;
+    disposers.push(term.onData(input));
     disposers.push(term.onBinary((d) => !readOnlyRef.current && send({ t: "in", d })));
     let resizeTimer: ReturnType<typeof setTimeout> | undefined;
     disposers.push(
@@ -280,6 +298,7 @@ export function useTerminal(opts: {
     void connect();
     return () => {
       closedByUs = true;
+      if (sendRef.current === input) sendRef.current = null;
       clearTimeout(timer);
       clearTimeout(resizeTimer);
       for (const d of disposers) d.dispose();
@@ -287,10 +306,45 @@ export function useTerminal(opts: {
     };
   }, [opts.sessionId, opts.wsPath, opts.readOnly, opts.bridgeOnline, enabled, opts.attachKey, authTick]);
 
+  // Schriftgröße live ändern; die neue Spaltenzahl geht über `onResize` an tmux.
+  useEffect(() => {
+    const term = termRef.current;
+    if (!term || term.options.fontSize === fontSize) return;
+    term.options.fontSize = fontSize;
+    // „Nur ansehen“ behält die Feldgröße des Programms (sonst bräche die Anzeige um) – dann scrollt das Feld in sich.
+    if (readOnlyRef.current) return;
+    try {
+      fitRef.current?.fit();
+    } catch {
+      // unsichtbar
+    }
+  }, [fontSize]);
+
   return {
     hostRef,
     state,
     message,
+    /** Zeichen senden wie getippt (Tastenzeile). Nur mit offener Verbindung und nicht bei „Nur ansehen“. */
+    sendInput: (d: string) => sendRef.current?.(d),
+    /** Text einfügen wie ⌘V (xterm beachtet den „Einfügen-Modus“ des Programms). */
+    paste: (text: string) => termRef.current?.paste(text),
+    /** Markierter Text – oder, ohne Markierung (auf dem Handy der Normalfall), der sichtbare Bildschirm. */
+    copyText: (): { text: string; what: "selection" | "screen" } => {
+      const term = termRef.current;
+      if (!term) return { text: "", what: "screen" };
+      const sel = term.getSelection();
+      if (sel) return { text: sel, what: "selection" };
+      const b = term.buffer.active;
+      const lines: string[] = [];
+      for (let i = b.viewportY; i < b.viewportY + term.rows; i++) lines.push(b.getLine(i)?.translateToString(true) ?? "");
+      return { text: lines.join("\n").replace(/\s+$/, ""), what: "screen" };
+    },
+    appCursor: () => termRef.current?.modes.applicationCursorKeysMode ?? false,
+    ctrlArmed,
+    toggleCtrl: () => {
+      ctrlRef.current = !ctrlRef.current;
+      setCtrlArmed(ctrlRef.current);
+    },
     focus: () => termRef.current?.focus(),
     findNext: (q: string) => searchRef.current?.findNext(q) ?? false,
     findPrevious: (q: string) => searchRef.current?.findPrevious(q) ?? false,

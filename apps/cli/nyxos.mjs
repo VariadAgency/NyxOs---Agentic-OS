@@ -429,7 +429,7 @@ function openBrowser(url) {
 export function repoName(dir) {
   const fromEnv = process.env.NYXOS_REPO;
   if (fromEnv) return fromEnv;
-  return readJson(join(dir, "package.json"), {})?.nyxos?.repo ?? "OWNER/nyxos";
+  return readJson(join(dir, "package.json"), {})?.nyxos?.repo ?? "VariadAgency/NyxOs---Agentic-OS";
 }
 
 /** Only a real "owner/name" may be used in download URLs — never the placeholder of an unpublished checkout. */

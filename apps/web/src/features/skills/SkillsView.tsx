@@ -50,6 +50,8 @@ function Tile({ tile, index, now, onOpen }: { tile: SkillTile; index: number; no
       type="button"
       onClick={onOpen}
       data-nyx={`skill-${tile.key}`}
+      // Wohin der Klick führt – der Nyx-Cursor geht so Schritt für Schritt bis /skills/<key>.
+      data-nyx-href={`/skills/${encodeURIComponent(tile.key)}`}
       data-skill-tile={tile.key}
       className="cc-stagger cc-card-deep group relative grid min-w-0 content-start gap-2 overflow-hidden rounded-2xl border border-a-line p-4 text-left transition-[border-color,transform,background-color,box-shadow] duration-200 ease-apple hover:-translate-y-px hover:border-[color:color-mix(in_srgb,var(--tile-c)_50%,transparent)] hover:bg-a-p2 hover:shadow-raise focus-visible:outline-2 focus-visible:outline-a-acc motion-reduce:hover:translate-y-0"
       style={{ animationDelay: `${Math.min(index, 12) * 25}ms`, ["--tile-c" as string]: color }}

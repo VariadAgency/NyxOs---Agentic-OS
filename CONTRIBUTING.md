@@ -15,7 +15,7 @@ By participating you agree to our [Code of Conduct](CODE_OF_CONDUCT.md). Securit
 ## Setup
 
 ```bash
-git clone https://github.com/OWNER/nyxos.git
+git clone https://github.com/VariadAgency/NyxOs---Agentic-OS.git
 cd nyxos
 corepack enable
 pnpm install

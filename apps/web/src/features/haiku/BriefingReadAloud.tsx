@@ -260,7 +260,7 @@ export function ReaderBar({ ra }: { ra: ReadAloud }) {
     <>
       {live}
       {visible && (
-        <div data-speech-keep role="region" aria-label={t("Vorlesen")} className="cc-speech-bar pointer-events-none fixed inset-x-0 bottom-(--a-demo-bar-h) z-50 flex justify-center px-3 pb-[max(12px,env(safe-area-inset-bottom))]">
+        <div data-speech-keep role="region" aria-label={t("Vorlesen")} className="cc-speech-bar cc-above-tabbar pointer-events-none fixed inset-x-0 bottom-(--a-demo-bar-h) z-50 flex justify-center px-3 pb-[max(12px,env(safe-area-inset-bottom))]">
           <div className="pointer-events-auto grid w-full max-w-[760px] gap-2.5 rounded-2xl border border-a-acc/40 bg-a-p/95 p-3.5 shadow-[0_18px_50px_-12px_color-mix(in_srgb,var(--a-bg)_80%,transparent)] backdrop-blur sm:p-4">
             {sentence && (
               <div className="flex min-w-0 items-center gap-2 font-mono text-label uppercase tracking-[.12em] text-a-acc">

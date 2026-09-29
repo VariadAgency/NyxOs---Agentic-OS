@@ -304,7 +304,7 @@ export function GitOverlay() {
   }, [target, nav]);
   if (!target) return null;
   return (
-    <div className="fixed inset-0 z-40 flex flex-col bg-a-bg/85 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label={titleOf(target)}>
+    <div className="fixed inset-0 z-40 flex flex-col bg-a-bg/85 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] backdrop-blur-sm" role="dialog" aria-modal="true" aria-label={titleOf(target)}>
       <div className="flex items-center gap-2 border-b border-a-line bg-a-p px-4 py-2.5">
         <button type="button" onClick={nav.back} className="rounded border border-a-line px-2.5 py-1 text-caption text-a-mut hover:bg-a-p3">
           {t("‹ Zurück")}

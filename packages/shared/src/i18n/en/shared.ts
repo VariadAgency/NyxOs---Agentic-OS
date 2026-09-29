@@ -387,6 +387,9 @@ const en: Record<string, string> = {
   "Die Sprach-Pakete ließen sich nicht installieren – bitte noch einmal versuchen.": "The speech packages couldn't be installed – please try again.",
   "Es fehlt ein ffmpeg mit Opus – bitte ffmpeg installieren und noch einmal versuchen.": "An ffmpeg with Opus is missing – please install ffmpeg and try again.",
   "Die Installation hat nicht geklappt – bitte noch einmal versuchen.": "The installation didn't work – please try again.",
+  // Agents in the session chat
+  "{d} T {h} h": "{d} d {h} h",
+  "{d} T": "{d} d",
 };
 
 export default en;

@@ -161,6 +161,25 @@ async function findStretchedCards(page: import("@playwright/test").Page): Promis
       const lastRect = last.getBoundingClientRect();
       const expectedHeight = lastRect.bottom - cardRect.top + paddingBottom;
       const diff = cardRect.height - expectedHeight;
+      // Tiles with `data-equal-row` (server "at a glance") are deliberately as tall as the tallest tile of their grid
+      // row. Only space at the BOTTOM is allowed then: the content starts at the top and the card is not taller than
+      // its tallest neighbour needs.
+      if (card.hasAttribute("data-equal-row")) {
+        const paddingTop = parseFloat(style.paddingTop) || 0;
+        const firstTop = Math.min(...children.map((c) => c.getBoundingClientRect().top));
+        const topGap = firstTop - cardRect.top - paddingTop;
+        const row = Array.from(document.querySelectorAll("[data-equal-row]")).filter((o) => Math.abs(o.getBoundingClientRect().top - cardRect.top) < 1);
+        const need = Math.max(
+          ...row.map((o) => {
+            const r = o.getBoundingClientRect();
+            const kids = Array.from(o.children).map((c) => c.getBoundingClientRect().bottom);
+            return Math.max(...kids) - r.top + (parseFloat(getComputedStyle(o).paddingBottom) || 0);
+          }),
+        );
+        const over = Math.max(topGap, cardRect.height - need);
+        out.push({ index, diff: over, stretched: over > tolerance });
+        return;
+      }
       out.push({ index, diff, stretched: diff > tolerance });
     });
     return out;

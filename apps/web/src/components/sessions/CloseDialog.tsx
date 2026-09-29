@@ -24,7 +24,7 @@ export function CloseDialog({ open, sessionTitle, pending, title, error, onConfi
   if (!open) return null;
   return (
     <div
-      className="fixed inset-0 z-50 grid place-items-center cc-scrim p-4"
+      className="fixed inset-0 z-50 grid place-items-center cc-scrim cc-sheet-wrap p-4"
       role="presentation"
       onClick={onCancel}
       onKeyDown={(e) => {
@@ -38,7 +38,7 @@ export function CloseDialog({ open, sessionTitle, pending, title, error, onConfi
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="close-dialog-title"
-        className="grid w-full max-w-sm gap-3 rounded-2xl border border-a-line bg-a-p2 p-4 shadow-pop"
+        className="cc-sheet grid w-full max-w-sm gap-3 rounded-2xl border border-a-line bg-a-p2 p-4 shadow-pop"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id="close-dialog-title" className="font-display text-callout font-semibold text-a-ink">

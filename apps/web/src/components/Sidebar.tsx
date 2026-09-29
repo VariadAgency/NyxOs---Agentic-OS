@@ -6,6 +6,7 @@ import { NyxAura } from "./brand/NyxAura";
 import { NAV_GROUPS, navLabel } from "../nav";
 import { useAppInfo } from "../hooks/useAppInfo";
 import { ConnectionStatus } from "./ConnectionStatus";
+import { FocusControl } from "../features/focus/FocusControl";
 import { cn } from "../lib/cn";
 import { closeNavDrawer, useNavDrawerOpen } from "../lib/navDrawer";
 import { NAV_TONE, toneVar } from "../lib/tones";
@@ -14,7 +15,7 @@ import { NAV_TONE, toneVar } from "../lib/tones";
 export const SIDEBAR_ID = "app-sidebar";
 
 export function Sidebar() {
-  // Unter 768 px ist die Leiste ein Menü, das von links hereingleitet (Menü-Knopf in der Kopfzeile);
+  // Unter 768 px ist die Leiste ein Menü, das von links hereingleitet („Mehr“ in der unteren Leiste);
   // der Inhalt nutzt die volle Breite. Ab 768 px steht sie fest wie bisher.
   const open = useNavDrawerOpen();
   const { pathname } = useLocation();
@@ -41,6 +42,8 @@ export function Sidebar() {
       className={cn(
         "cc-scroll flex h-full w-[208px] shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-a-line bg-a-p p-2.5",
         "max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-50 max-md:w-[min(280px,86vw)] max-md:shadow-pop",
+        // Statusleiste/Notch/Home-Leiste freihalten (viewport-fit=cover).
+        "max-md:pt-[max(10px,env(safe-area-inset-top))] max-md:pb-[max(10px,env(safe-area-inset-bottom))] max-md:pl-[max(10px,env(safe-area-inset-left))]",
         "transition-[transform,visibility] duration-250 ease-[cubic-bezier(.2,.8,.2,1)]",
         open ? "max-md:translate-x-0" : "max-md:invisible max-md:-translate-x-full",
       )}
@@ -107,7 +110,12 @@ export function Sidebar() {
         </div>
       ))}
 
-      <ConnectionStatus />
+      {/* Focus button above the connection status line (on the phone at the bottom of the "More" drawer). The wrapper
+          carries `mt-auto` so both sit together at the bottom. */}
+      <div className="mt-auto grid gap-1 pt-1">
+        <FocusControl />
+        <ConnectionStatus />
+      </div>
     </aside>
     </>
   );

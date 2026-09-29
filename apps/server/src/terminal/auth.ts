@@ -222,6 +222,8 @@ export function needsAuth(method: string, path: string, authReads: boolean): boo
   if (path === "/api/search/all") return true;
   // das geheime ntfy-Thema (wer es kennt, liest die Mitteilungen mit) — immer nur mit Anmeldung.
   if (path === "/api/push/subscribe") return true;
+  // Feedback & Unterstützen: eigene Meldungen (E-Mail, Bildschirmfoto, Diagnose) — immer nur mit Anmeldung.
+  if (path.startsWith("/api/support/")) return true;
   if (path.startsWith("/api/")) return method !== "GET" && method !== "HEAD" ? true : authReads;
   if (path === "/live") return authReads;
   return false;

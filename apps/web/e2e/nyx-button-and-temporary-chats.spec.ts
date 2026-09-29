@@ -87,7 +87,7 @@ test("Temporäre Sessions: ⏳-Marken, Filter „Temporäre zeigen“, Schalter 
     await dlg.getByRole("button", { name: "Abbrechen" }).click();
   }
 
-  await page.goto("/settings");
+  await page.goto("/settings/sessions");
   const hours = page.getByRole("spinbutton", { name: /Stunden/ });
   await expect(hours).toHaveValue("6", { timeout: 15_000 });
   await hours.scrollIntoViewIfNeeded();

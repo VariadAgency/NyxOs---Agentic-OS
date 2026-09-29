@@ -113,7 +113,7 @@ export function BuildStatusPill({ current, history = [], view = null, className 
         {inner}
       </button>
       {open && (
-        <div id={dialogId} role="dialog" aria-label={view.headline} className="absolute top-full left-0 z-30 mt-1.5 grid w-80 gap-1.5 rounded-lg border border-a-line bg-a-p p-3 text-caption shadow-lg shadow-black/40">
+        <div id={dialogId} role="dialog" aria-label={view.headline} className="cc-pop-sheet absolute top-full left-0 z-30 mt-1.5 grid w-80 gap-1.5 rounded-lg border border-a-line bg-a-p p-3 text-caption shadow-lg shadow-black/40">
           <b className="text-a-ink">{view.headline}</b>
           <p className="text-a-ink">{view.sentence}</p>
           {next && <p className="text-a-mut">{next}</p>}

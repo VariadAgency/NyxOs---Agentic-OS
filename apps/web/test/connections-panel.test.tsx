@@ -35,7 +35,7 @@ function stub(handler: (url: string) => Promise<Response>) {
 
 function renderPanel() {
   return renderWithClient(
-    <MemoryRouter initialEntries={["/settings#verbindungen"]}>
+    <MemoryRouter initialEntries={["/settings/betrieb#verbindungen"]}>
       <ConnectionsPanel />
     </MemoryRouter>,
   );
@@ -153,7 +153,7 @@ describe("ConnectionsPanel", () => {
 });
 
 describe("ConnectionStatus → Verbindungen", () => {
-  it("die Statuszeile unten links verlinkt auf /settings#verbindungen", async () => {
+  it("die Statuszeile unten links verlinkt auf /settings/verbindungen", async () => {
     stub((url) => {
       if (url === "/health") return jsonResponse({ ok: true });
       if (url === "/api/machines") return jsonResponse([]);
@@ -166,6 +166,6 @@ describe("ConnectionStatus → Verbindungen", () => {
       </MemoryRouter>,
     );
     const link = await screen.findByRole("link", { name: /Alle Verbindungen ansehen/ });
-    expect(link).toHaveAttribute("href", "/settings#verbindungen");
+    expect(link).toHaveAttribute("href", "/settings/verbindungen");
   });
 });

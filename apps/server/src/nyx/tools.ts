@@ -275,7 +275,7 @@ export function registerNyxTools(reg: ToolRegistry, deps: NyxToolDeps): void {
   reg.register({
     name: "mitteilungen_liste",
     description:
-      "Die zuletzt verschickten Mitteilungen an den Nutzer (iPhone über ntfy, Mac, Browser, Telegram) – die schickt NyxOS in deinem Namen. Je Mitteilung: Zeit, Wege mit Ergebnis, Art, Titel, Text (gekürzt), zugestellt ja/nein (mit Grund), Sammel-Mitteilung ja/nein. Für „Was hast du mir gerade geschickt?“. Nur lesen.",
+      "Die zuletzt verschickten Mitteilungen an den Nutzer (Handy über ntfy, Rechner, Browser, Telegram) – die schickt NyxOS in deinem Namen. Je Mitteilung: Zeit, Wege mit Ergebnis, Art, Titel, Text (gekürzt), zugestellt ja/nein, Grund (gesendet, Ruhezeit, Unter-Agent, Anlass aus, von dir weggelassen …), deine Prüfung/dein Text, die Rückmeldung des Nutzers (passt/brauche ich nicht), Sammel-Mitteilung ja/nein. Für „Was hast du mir gerade geschickt?“ und „Warum kam keine Mitteilung?“. Einstellungen dazu: app_api GET/PATCH /api/notifications/settings. Nur lesen.",
     scopes: ["full"],
     input: z.object({ anzahl: z.number().int().min(1).max(30).optional() }),
     handler: async (a, { db }) => {

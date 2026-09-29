@@ -16,7 +16,7 @@ function ringColor(pct: number, hinweisPct: number, erzwingenPct: number | null)
 }
 
 /** `compact` = einzeilige Kopfleiste — der Hinweis „Komprimieren empfohlen“ steht dann als
- * Ring-Markierung + Hinweistext am Ring, der Knopf dazu ist „Kontext komprimieren“ (SessionActions). */
+ * Ring-Markierung + Hinweistext am Ring, der Knopf dazu ist „Kontext komprimieren“ (Session-Infos → Steuerung). */
 export function ContextGuardBadge({ sessionId, compact = false, contextWindow = null, at = null }: { sessionId: string; compact?: boolean; contextWindow?: number | null; at?: string | null }) {
   const { data } = useContextGuardSession(sessionId);
   const compactNow = useCompactNow(sessionId);
@@ -40,7 +40,7 @@ export function ContextGuardBadge({ sessionId, compact = false, contextWindow = 
         // Derselbe einfache Satz wie am Ring der Session-Infos, ohne Technik-Quelle.
         title={`${contextRingTitle({ pct, window: contextWindow, at })}${compact && hint && pct !== null ? ` – ${t("Komprimieren empfohlen")}` : ""} · ${t("Klick: Schwellen für diese Session")}`}
         // typo-keep: Zahl im 18-px-Ring (wächst nicht mit)
-        className={cn("cc-ring grid h-6 w-6 shrink-0 place-items-center rounded-full text-[9px] font-semibold text-a-ink", compact && hint && "ring-2 ring-a-wait/60 ring-offset-1 ring-offset-a-p")}
+        className={cn("cc-ring cc-hit grid h-6 w-6 shrink-0 place-items-center rounded-full text-[9px] font-semibold text-a-ink", compact && hint && "ring-2 ring-a-wait/60 ring-offset-1 ring-offset-a-p")}
         style={{ background: `conic-gradient(${color} ${(pct ?? 0) * 3.6}deg, var(--a-p3) 0deg)` }}
         aria-label={t("Kontext-Wächter — Schwellen für diese Session")}
       >
@@ -64,7 +64,7 @@ export function ContextGuardBadge({ sessionId, compact = false, contextWindow = 
       )}
 
       {menuOpen && (
-        <div className="absolute top-8 left-0 z-10 grid w-72 gap-2 rounded-lg border border-a-line bg-a-p p-3 shadow-lg">
+        <div className="cc-pop-sheet absolute top-8 left-0 z-10 grid w-72 gap-2 rounded-lg border border-a-line bg-a-p p-3 shadow-lg">
           <div className="flex items-center justify-between">
             <h4 className="text-caption font-medium text-a-ink">{t("Schwellen für diese Session")}</h4>
             <span className={cn("font-mono text-label text-a-mut")}>{t("Quelle: {source}", { source: thresholds.source })}</span>

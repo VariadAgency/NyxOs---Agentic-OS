@@ -86,7 +86,7 @@ describe("Haiku-Panel", () => {
   });
 
   // Die technische Wächter-Zeile gehört in die Einstellungen
-  // (/einstellungen/haiku, `ContextGuardSettings`), nicht in den Kopf des Nyx-Zentrums.
+  // (/einstellungen/nyx/motor, `ContextGuardSettings`), nicht in den Kopf des Nyx-Zentrums.
   it("zeigt die Kontext-Wächter-Schwelle NICHT mehr im Kopf des Zentrums", async () => {
     stubFetch({ contextGuard: { default: { hinweisPct: 60, erzwingenEnabled: true, erzwingenPct: 80 }, haiku: { hinweisPct: 55, erzwingenEnabled: true, erzwingenPct: 75 } } });
     const user = userEvent.setup();
@@ -182,7 +182,7 @@ describe("Haiku-Panel", () => {
     await user.type(within(panel).getByRole("textbox", { name: "Frage an Nyx" }), "Hallo{Enter}");
     expect(await within(panel).findByText("Nyx ist ausgeschaltet.")).toBeInTheDocument();
     // kein totes „einschalten“ – der Link führt wirklich in die Haiku-Einstellungen.
-    expect(within(panel).getByRole("link", { name: "In Einstellungen einschalten" })).toHaveAttribute("href", "/einstellungen/haiku");
+    expect(within(panel).getByRole("link", { name: "In Einstellungen einschalten" })).toHaveAttribute("href", "/einstellungen/nyx/motor");
   });
 
   it("FAB zeigt die Zahl offener Punkte, Plan-Karte gibt frei", async () => {

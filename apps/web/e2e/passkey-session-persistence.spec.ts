@@ -141,7 +141,7 @@ test("anmelden → 10 Tabs → neu laden → Server-Neustart → Session starten
 
 test("„Code erzeugen“ (nach Touch ID) und „Bitte anmelden“ mit Weiterlauf der Aktion", async () => {
   // Code erzeugen: nur angemeldet, erst Touch ID, dann steht der Code da.
-  await page.goto("/settings");
+  await page.goto("/settings/konto");
   await expectSignedIn(page, "vor Code erzeugen");
   await page.getByRole("button", { name: "Code erzeugen" }).click();
   const codeBox = page.getByTestId("setup-code");

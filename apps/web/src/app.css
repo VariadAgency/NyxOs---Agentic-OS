@@ -510,3 +510,176 @@ table {
     transition: none;
   }
 }
+
+/* ── Handy (iPhone 390 px, iPad 820 px) ─────────────────────────────────────────────────────────────
+   Leitplanken: Tipp-Ziele ≥ 44 px, Eingabefelder ≥ 16 px (sonst zoomt iOS beim Antippen), Blätter von unten,
+   Tastatur verdeckt nichts. Bewusst außerhalb der Tailwind-Ebenen, wo es Hilfsklassen übersteuern muss. */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+body {
+  /* Kein Gummiband-Ziehen der ganzen Seite (der Inhalt scrollt in <main>). */
+  overscroll-behavior: none;
+}
+@media (max-width: 767px) {
+  /* Alle Kopf-Bedienelemente (Suche, Knöpfe, Umschalter, Nyx-Leiste) werden daumengroß. */
+  :root {
+    --a-ctl-h: 44px;
+  }
+}
+@media (max-width: 767px), (pointer: coarse) {
+  input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]),
+  textarea,
+  select {
+    font-size: 16px;
+  }
+  /* WebKit (Safari, iPhone) ignores `min-height` on a native select – it stayed 23 px high (idea links, models …).
+     Without the native look the height applies; the arrow comes as an image. `SelectField` draws its own arrow. */
+  select:not([multiple], [data-select-field]) {
+    -webkit-appearance: none;
+    appearance: none;
+    min-height: 44px;
+    padding-right: 2rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5 6 7.5 9 4.5' fill='none' stroke='%239a9aa3' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.6rem center;
+    background-size: 12px;
+  }
+}
+
+/* Diagramme messen ihre Breite selbst (ResizeObserver, Startwert 640 px). In einer nach Inhalt bemessenen Spalte
+   bestimmte das 640-px-Bild sonst die Spaltenbreite und blieb so breit – bei 390 px scrollte der Überblick
+   waagerecht. `inline-size`-Eindämmung: die Breite kommt nur noch von außen. */
+[data-chart="bar"],
+[data-chart="area"],
+[data-chart="heatmap"],
+[data-chart="compare"] {
+  contain: inline-size;
+}
+
+/* Handy-Tastatur offen (lib/visualViewport.ts): App = sichtbarer Bereich, entbehrliche Leisten weg. */
+html[data-kb="open"] .cc-app {
+  position: fixed;
+  inset-inline: 0;
+  top: var(--app-top, 0px);
+  height: var(--app-h, 100dvh);
+}
+html[data-kb="open"] .cc-kb-hide {
+  display: none;
+}
+
+/* Kleine Knöpfe: sichtbar bleibt die Größe, die Trefferfläche wächst auf Touch-Geräten auf 44 px. In der
+   Komponenten-Ebene, damit `absolute` & Co. (Hilfsklassen) weiter gewinnen. */
+@layer components {
+  @media (pointer: coarse) {
+    .cc-hit {
+      position: relative;
+    }
+    .cc-hit::after {
+      content: "";
+      position: absolute;
+      inset: min(0px, calc((100% - 44px) / 2));
+    }
+  }
+}
+
+/* Dialoge werden auf dem Handy ein Blatt von unten (volle Breite, Griff oben, Home-Leiste frei). */
+@media (max-width: 767px) {
+  .cc-sheet-wrap {
+    place-items: end stretch;
+    padding: calc(env(safe-area-inset-top) + 24px) 0 0;
+  }
+  html[data-kb="open"] .cc-sheet-wrap {
+    top: var(--app-top, 0px);
+    bottom: auto;
+    height: var(--app-h, 100dvh);
+  }
+  .cc-sheet {
+    width: 100%;
+    max-width: none;
+    max-height: 100%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-radius: 18px 18px 0 0;
+    border-bottom-width: 0;
+    padding-bottom: max(20px, calc(env(safe-area-inset-bottom) + 12px));
+  }
+  .cc-sheet::before {
+    content: "";
+    display: block;
+    width: 36px;
+    height: 5px;
+    margin: -6px auto 4px;
+    border-radius: 3px;
+    background: var(--a-line-strong);
+  }
+  .cc-sheet.cc-sheet-flex {
+    overflow: hidden;
+    height: 100%;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .cc-sheet.cc-sheet-flex::before {
+    margin: 8px auto 2px;
+  }
+  /* Kleine Aufklapp-Fenster, die am Mac neben ihrem Knopf schweben (Kontext-Wächter, Build-Plakette), liefen
+     auf 390 px rechts aus dem Bild – auf dem Handy sind sie ein Blatt von unten (über der unteren Leiste). */
+  .cc-pop-sheet {
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 60;
+    width: auto;
+    max-width: none;
+    max-height: 70dvh;
+    margin: 0;
+    overflow-y: auto;
+    border-radius: 18px 18px 0 0;
+    padding-bottom: max(16px, calc(env(safe-area-inset-bottom) + 12px));
+    box-shadow: var(--shadow-pop);
+  }
+  /* Hinweise unten (Toasts, Vorlese-Leiste) liegen über der unteren Leiste, nicht darauf. */
+  .cc-above-tabbar {
+    bottom: calc(64px + env(safe-area-inset-bottom));
+  }
+  html[data-kb="open"] .cc-above-tabbar {
+    bottom: calc(100% - var(--app-top, 0px) - var(--app-h, 100dvh) + 8px);
+  }
+  .cc-toast {
+    left: 0;
+    right: 0;
+    width: fit-content;
+    max-width: calc(100vw - 32px);
+    margin-inline: auto;
+    translate: none;
+  }
+  /* Befehlspalette oben (die Tastatur kommt von unten), fast volle Breite. */
+  .cc-palette {
+    top: calc(env(safe-area-inset-top) + 8px);
+    /* Ohne Verschieben (`translate`) zentriert – robuster, und Playwrights WebKit ignorierte Tailwinds -translate-x-1/2. */
+    left: 8px;
+    right: 8px;
+    width: auto;
+    translate: none;
+  }
+  html[data-kb="open"] .cc-palette {
+    top: calc(var(--app-top, 0px) + 8px);
+  }
+  html[data-kb="open"] .cc-palette [cmdk-list] {
+    max-height: calc(var(--app-h, 100dvh) - 90px);
+  }
+}
+@media (max-width: 767px) and (prefers-reduced-motion: no-preference) {
+  .cc-sheet {
+    animation: cc-sheet-in 260ms var(--a-ease);
+  }
+}
+@keyframes cc-sheet-in {
+  from {
+    transform: translateY(32px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}

@@ -43,7 +43,7 @@ export function ImageViewer({ files, index, onIndex, onClose }: { files: NyxFile
   }, [files.length, index, onClose, onIndex]);
   if (!file) return null;
   return (
-    <div role="dialog" aria-modal="true" aria-label={t("Bild: {name}", { name: file.title ?? file.name })} className="fixed inset-0 z-[70] flex flex-col bg-a-bg/95 backdrop-blur-sm" onClick={onClose}>
+    <div role="dialog" aria-modal="true" aria-label={t("Bild: {name}", { name: file.title ?? file.name })} className="fixed inset-0 z-[70] flex flex-col bg-a-bg/95 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] backdrop-blur-sm" onClick={onClose}>
       <div className="flex items-center gap-3 border-b border-a-line px-4 py-2.5" onClick={(e) => e.stopPropagation()}>
         <SourceBadge source={file.source} />
         <div className="min-w-0 flex-1">

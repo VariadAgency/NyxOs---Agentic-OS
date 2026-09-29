@@ -36,6 +36,14 @@ function firstFinished(rows: BuildRunRow[], ids: readonly number[]): number | nu
   return inGroup[0]?.id ?? null;
 }
 
+/**
+ * Log row per failure (headline + sentence) – the text of the notification can be an own template or Nyx' wording,
+ * then the search by the start of the text would no longer find the row.
+ */
+const logIdByGroup = new Map<string, number>();
+const LOG_ID_KEEP = 200;
+const groupKey = (g: BuildGroup) => `${g.headline}|${g.sentence}`;
+
 /** Entscheidungen nacheinander (gleichzeitig fertige Läufe sollen den Eintrag des ersten schon sehen). */
 let chain: Promise<void> = Promise.resolve();
 
@@ -47,6 +55,16 @@ export function notifyBuildDone(db: Db, event: BuildDoneEvent, send: (input: Pus
 }
 
 async function setCount(db: Db, group: BuildGroup): Promise<void> {
+  const known = logIdByGroup.get(groupKey(group));
+  if (known !== undefined) {
+    // Only if the remembered row really belongs to this failure (restart/other DB: then search as before).
+    const [row] = await db.select({ id: pushLog.id, message: pushLog.message }).from(pushLog).where(and(eq(pushLog.id, known), eq(pushLog.kind, "build_red"), eq(pushLog.title, group.headline), gte(pushLog.sentAt, group.firstAt))).limit(1);
+    if (row) {
+      const message = row.message.startsWith(group.sentence) ? `${group.sentence} · ${formatBuildCount(group)}` : row.message;
+      await db.update(pushLog).set({ bundledCount: group.count, message }).where(eq(pushLog.id, row.id));
+      return;
+    }
+  }
   const [existing] = await db
     .select({ id: pushLog.id })
     .from(pushLog)
@@ -66,7 +84,11 @@ async function decide(db: Db, event: BuildDoneEvent, send: (input: PushNotifyInp
   const group = groups.find((g) => g.ids.includes(event.id));
   if (!group) return;
   if (firstFinished(rows, group.ids) === event.id) {
-    await send({ kind: "build_red", title: group.headline, message: group.sentence, sessionKey: event.sessionKey ?? undefined });
+    const res = (await send({ kind: "build_red", title: group.headline, message: group.sentence, sessionKey: event.sessionKey ?? undefined })) as { logId?: number } | undefined;
+    if (typeof res?.logId === "number") {
+      logIdByGroup.set(groupKey(group), res.logId);
+      if (logIdByGroup.size > LOG_ID_KEEP) logIdByGroup.delete(logIdByGroup.keys().next().value as string);
+    }
     // Waren gleichzeitig schon weitere gleiche Läufe fertig, steht ihr Zähler gleich am neuen Eintrag.
     if (group.count > 1) await setCount(db, group);
     return;

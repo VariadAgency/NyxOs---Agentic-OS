@@ -1445,9 +1445,29 @@ export function createScene3D(
     applyYawPitch();
   }
 
+  // Zwei-Finger-Zoom auf Touch-Bildschirmen. Safari (iPhone/iPad) meldet das Kneifen zusätzlich als
+  // eigene Geste (`gesturechange`, unten) – dort zoomt nur die Geste, sonst (Android/Chrome) zoomen wir hier.
+  // Sobald ein zweiter Finger liegt, endet das Drehen des ersten (kein Sprung beim Loslassen).
+  const touchPts = new Map<number, { x: number; y: number }>();
+  let pinchDist = 0;
+  const safariGestures = typeof window !== "undefined" && "ongesturechange" in window;
+  const pinchSpan = () => {
+    const [a, b] = [...touchPts.values()];
+    return a && b ? { d: Math.hypot(a.x - b.x, a.y - b.y), x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } : null;
+  };
   const onPointerDown = (e: PointerEvent) => {
     host.focus({ preventScroll: true });
     const p = local(e);
+    if (e.pointerType === "touch") {
+      touchPts.set(e.pointerId, p);
+      if (touchPts.size >= 2) {
+        down = null;
+        releaseGrab();
+        rotSamples = [];
+        pinchDist = pinchSpan()?.d ?? 0;
+        return;
+      }
+    }
     cancelTween();
     rig.stop();
     flyVel.set(0, 0, 0);
@@ -1464,6 +1484,22 @@ export function createScene3D(
   };
   const onPointerMove = (e: PointerEvent) => {
     const p = local(e);
+    if (e.pointerType === "touch" && touchPts.has(e.pointerId)) {
+      touchPts.set(e.pointerId, p);
+      if (touchPts.size >= 2) {
+        const span = pinchSpan();
+        if (!safariGestures && span && pinchDist > 0 && span.d > 0) {
+          const factor = Math.max(0.74, Math.min(1.35, pinchDist / span.d));
+          userMoved = true;
+          cancelTween();
+          if (control === "orbit") rig.zoom(factor, anchorAt(span.x, span.y));
+          else flyVel.addScaledVector(forward(new Vector3()), -Math.log(factor) * FLY_WHEEL * FLY_DAMP * Math.max(60, sceneRadius * 0.3));
+          request();
+        }
+        pinchDist = span?.d ?? 0;
+        return;
+      }
+    }
     if (down && e.buttons !== 0) {
       const dx = p.x - down.lx;
       const dy = p.y - down.ly;
@@ -1508,6 +1544,8 @@ export function createScene3D(
     }
   };
   const onPointerUp = (e: PointerEvent) => {
+    touchPts.delete(e.pointerId);
+    if (touchPts.size < 2) pinchDist = 0;
     const p = local(e);
     const d = down;
     down = null;
@@ -1561,6 +1599,8 @@ export function createScene3D(
   };
   /** Abgebrochene Geste (System nimmt den Zeiger weg): nur loslassen — kein Klick, kein Schwung. */
   const onPointerCancel = (e: PointerEvent) => {
+    touchPts.delete(e.pointerId);
+    if (touchPts.size < 2) pinchDist = 0;
     down = null;
     releaseGrab();
     rotSamples = [];

@@ -13,6 +13,7 @@ import { Skeleton } from "../../components/ui/skeleton";
 import { useSessionAgent } from "./api";
 import { FileChanges } from "./FileChanges";
 import { DiffStat, FilePath } from "./FilePath";
+import { ModelName } from "../../lib/modelName";
 
 const fullFmt = new Intl.NumberFormat(locale());
 
@@ -130,7 +131,9 @@ export function AgentDetailBody({ sessionId, agentId, sessionHref }: { sessionId
             {a.model && (
               <>
                 <dt className="text-a-mut">{t("Modell")}</dt>
-                <dd className="font-mono text-a-ink">{a.model}</dd>
+                <dd className="text-a-ink">
+                  <ModelName id={a.model} />
+                </dd>
               </>
             )}
           </dl>

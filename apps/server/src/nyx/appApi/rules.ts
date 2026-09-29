@@ -32,6 +32,8 @@ export const BLOCKED_RULES: readonly ApiRule[] = [
   { methods: W, pattern: "/api/telegram/token", label: "Das Telegram-Token fasst Nyx nie an." },
   { methods: W, pattern: "/api/telegram/pairing", label: "Die Telegram-Kopplung (Zugangscode) macht nur der Nutzer." },
   { methods: W, pattern: "/api/nyx/voice/elevenlabs/key", label: "Den ElevenLabs-Schlüssel fasst Nyx nie an." },
+  // Betrieb & Zugriff: Nyx may read, check and save the form – never the secrets for it.
+  { methods: "*", pattern: "/api/hosting/secrets/**", label: "Tunnel-Token und Schlüssel für Betrieb & Zugriff fasst Nyx nie an." },
   { methods: ["POST"], pattern: "/api/models/providers", label: "Modell-Anbieter tragen Schlüssel – die richtet nur der Nutzer ein." },
   { methods: ["PUT", "DELETE"], pattern: "/api/models/providers/:id", label: "Modell-Anbieter tragen Schlüssel – die richtet nur der Nutzer ein." },
   { methods: ["POST"], pattern: "/api/mcp/connectors", label: "Konnektoren tragen Tokens – die richtet nur der Nutzer ein." },
@@ -55,6 +57,9 @@ export const BLOCKED_RULES: readonly ApiRule[] = [
   { methods: "*", pattern: "/api/nyx/voice/transcribe", label: "Braucht eine Tonaufnahme – geht nicht über app_api." },
   { methods: "*", pattern: "/api/nyx/voice/elevenlabs/clone", label: "Braucht eine Tonaufnahme – geht nicht über app_api." },
   { methods: ["POST"], pattern: "/api/nyx/files", label: "Braucht eine Datei – dafür gibt es show_image/screenshot_simulator." },
+  // Feedback & Unterstützen: Geld und das Ziel der Meldungen bleiben beim Nutzer.
+  { methods: "*", pattern: "/api/support/donate", label: "Spenden macht nur der Nutzer selbst – Nyx kann das Blatt „Buy me Tokens“ öffnen." },
+  { methods: W, pattern: "/api/support/settings", label: "Wohin Meldungen gehen, legt nur der Nutzer fest." },
 ];
 
 export const CONFIRM_RULES: readonly ApiRule[] = [
@@ -75,6 +80,9 @@ export const CONFIRM_RULES: readonly ApiRule[] = [
   { methods: ["POST"], pattern: "/api/entries/:id/start", label: "Auftrag autonom starten" },
   { methods: ["POST"], pattern: "/api/finder/write", label: "Datei auf dem Rechner speichern" },
   { methods: ["POST"], pattern: "/api/setup", label: "Einrichtung ändern (Hooks, Projektordner)" },
+  // Feedback & Unterstützen: Nyx darf Entwürfe vorbereiten (`PUT /api/support/draft`, direkt), abschicken nur nach „Ausführen“.
+  { methods: ["POST"], pattern: "/api/support/bug", label: "Fehlermeldung an den Entwickler senden" },
+  { methods: ["POST"], pattern: "/api/support/idea", label: "Idee an den Entwickler senden" },
   { methods: W, pattern: "/api/git/**", label: "Git (Merge, Push …)", future: true },
 ];
 

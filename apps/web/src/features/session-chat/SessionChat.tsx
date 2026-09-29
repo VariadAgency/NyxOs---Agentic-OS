@@ -1,20 +1,23 @@
 // Chat-Kachel einer Session — Verlauf (ChatPanel) oben, Eingabe unten, Dateien lassen sich
 // auf die ganze Kachel ziehen. Senden geht an die LAUFENDE Session (Server → Brücke → tmux).
 import { friendlyError } from "../../lib/friendlyError";
-import { type DragEvent, type ReactNode, useEffect, useRef, useState } from "react";
+import { type DragEvent, type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { ChatPanel } from "../../components/sessions/ChatPanel";
 import type { Session } from "../../lib/api";
 import { cn } from "../../lib/cn";
 import { useQueryClient } from "@tanstack/react-query";
 import { CHAT_MAX_FILE_BYTES, t, type ChatSendResult } from "@nyxos/shared";
 import { deliveriesKey, useChatAvailability, useSendChatMessage } from "./api";
-import { DeliveryQueue } from "./DeliveryQueue";
+import { DeliveryQueue, DeliveryQueueToggle } from "./DeliveryQueue";
+import { PHONE_QUERY, useMediaQuery } from "../../hooks/useMediaQuery";
+import { SessionAgentsBar } from "../session-agents/SessionAgentsBar";
 import { addDrafts, readBase64, releasePreview, type DraftAttachment } from "./attachments";
 import { ChatComposer } from "./ChatComposer";
 import { PromptAssistPanel } from "./PromptAssistPanel";
 import { loadAssistOpen, saveAssistOpen } from "./promptAssist";
 import { IconPaperclip } from "./icons";
 import { addPending, removePending, updatePending } from "./pending";
+import { SessionSummaryCard } from "./SessionSummary";
 
 interface SessionChatProps {
   session: Session;
@@ -37,6 +40,10 @@ export function SessionChat({ session, at, toolbar, takeover }: SessionChatProps
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const dragDepth = useRef(0);
+  // Phone: agents bar and queue share one line (queue collapsed).
+  const phone = useMediaQuery(PHONE_QUERY);
+  const [queueOpen, setQueueOpen] = useState(false);
+  const queueId = useId();
   const draftsRef = useRef(drafts);
   draftsRef.current = drafts;
 
@@ -121,7 +128,7 @@ export function SessionChat({ session, at, toolbar, takeover }: SessionChatProps
   return (
     <div
       data-testid="session-main"
-      className="@container relative flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-a-line bg-a-p"
+      className="@container relative flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-a-line bg-a-p max-md:rounded-none max-md:border-0"
       onDragEnter={(e) => {
         if (!hasFiles(e)) return;
         e.preventDefault();
@@ -148,12 +155,29 @@ export function SessionChat({ session, at, toolbar, takeover }: SessionChatProps
       }}
     >
       {toolbar}
+      {/* bleibende Zusammenfassung von Nyx oben im Chat (aufklappbar). */}
+      <SessionSummaryCard sessionId={session.id} />
       <div className="flex min-h-0 flex-1 flex-col @min-[900px]:flex-row">
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <div className="min-h-0 flex-1">
             <ChatPanel key={session.id} sessionId={session.id} at={at} />
           </div>
-          <DeliveryQueue sessionId={session.id} />
+          {phone ? (
+            <>
+              {queueOpen && <DeliveryQueue sessionId={session.id} id={queueId} />}
+              {/* One line: agents on the left (tap → sheet), "2 waiting" on the right (tap → list above). */}
+              <div className="cc-kb-hide flex min-w-0 items-stretch" data-testid="chat-status-strip">
+                <SessionAgentsBar session={session} className="min-w-0 flex-1" />
+                <DeliveryQueueToggle sessionId={session.id} open={queueOpen} onToggle={() => setQueueOpen((v) => !v)} controls={queueId} />
+              </div>
+            </>
+          ) : (
+            <>
+              <DeliveryQueue sessionId={session.id} />
+              {/* Agents of the session (only when there are any) — a click opens the popup in the chat window. */}
+              <SessionAgentsBar session={session} className="cc-kb-hide" />
+            </>
+          )}
           <ChatComposer
             who={who}
             availability={availability.data}

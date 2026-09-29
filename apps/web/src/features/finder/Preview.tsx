@@ -196,8 +196,8 @@ export function QuickLook({ root, entry, onClose, onMove, onOpen, onReveal }: { 
   useEffect(() => ref.current?.focus(), []);
   const when = relativeTime(new Date(entry.mtimeMs).toISOString());
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center cc-scrim p-4 motion-safe:animate-[cc-tab-fade_120ms_ease-out]" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div ref={ref} tabIndex={-1} role="dialog" aria-modal="true" aria-label={t("Übersicht: {name}", { name: entry.name })} className="flex max-h-[92vh] w-full max-w-[980px] flex-col overflow-hidden rounded-2xl border border-a-line bg-a-p shadow-2xl outline-none">
+    <div className="fixed inset-0 z-50 grid place-items-center cc-scrim cc-sheet-wrap p-4 motion-safe:animate-[cc-tab-fade_120ms_ease-out]" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div ref={ref} tabIndex={-1} role="dialog" aria-modal="true" aria-label={t("Übersicht: {name}", { name: entry.name })} className="cc-sheet cc-sheet-flex flex max-h-[92vh] w-full max-w-[980px] flex-col overflow-hidden rounded-2xl border border-a-line bg-a-p shadow-2xl outline-none">
         <div className="flex items-center gap-2 border-b border-a-line px-4 py-2.5">
           <FileIcon entry={entry} size={18} />
           <div className="min-w-0 flex-1">

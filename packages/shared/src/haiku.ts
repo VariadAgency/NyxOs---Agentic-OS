@@ -155,7 +155,7 @@ export interface HaikuSelftest {
 }
 
 /** review = Hintergrund-Lernprüfung, schedule = geplante Aufgabe, compact = Verdichtung eines Fadens. */
-export const HaikuCallKindSchema = z.enum(["chat", "briefing", "recap", "rundgang", "idealink", "antwort", "auswertung", "sortierung", "plan", "review", "schedule", "compact", "idee", "prompt"]);
+export const HaikuCallKindSchema = z.enum(["chat", "briefing", "recap", "rundgang", "idealink", "antwort", "auswertung", "sortierung", "plan", "review", "schedule", "compact", "idee", "prompt", "mitteilung"]);
 export type HaikuCallKind = z.infer<typeof HaikuCallKindSchema>;
 
 export interface HaikuCall {

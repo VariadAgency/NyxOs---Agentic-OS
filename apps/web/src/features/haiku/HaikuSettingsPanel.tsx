@@ -1,14 +1,16 @@
-// Haiku-Einstellungen + Verbrauch, Route `/einstellungen/haiku`. Motor, Tages-Budget, Zeiten;
+// Haiku-Einstellungen + Verbrauch, Route `/einstellungen/nyx/motor` (formerly `/einstellungen/haiku`). Motor, Tages-Budget, Zeiten;
 // Verbrauch heute als Ring und die letzten Aufrufe.
 import { friendlyError } from "../../lib/friendlyError";
 import { formatTokensCompact, getLang, t, type HaikuCall, type HaikuEngineKind, type HaikuSettings, type HaikuSettingsPatch, type HaikuStatus } from "@nyxos/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { cn } from "../../lib/cn";
+import { Advanced } from "../settings/Advanced";
 import { formatDateTime, relativeTime } from "../../lib/format";
 import { EngineNotice, EngineStateLine, useHaikuStatus } from "./EngineStatus";
 import { fetchHaikuCalls, patchHaikuSettings, runHaikuSelftest } from "./haikuApi";
 import { ErrorBox, FIELD, LABEL, formatUsd, riseStyle } from "./ui";
+import { readableModel } from "../../lib/modelName";
 
 type NumField = "dailyBudgetUsd" | "rundgangMinutes" | "timeoutSeconds" | "ideaLinkBudgetPercent" | "ideaLinkIdeasPerLinkDay" | "ideaLinkIdeasPerDay";
 type TimeField = "briefingTime" | "recapTime";
@@ -49,6 +51,7 @@ const CALL_KIND: Record<HaikuCall["kind"], string> = {
   compact: t("Verdichtung"),
   idee: t("Ideen"),
   prompt: t("Prompt verbessern"),
+  mitteilung: t("Mitteilung prüfen/schreiben"),
 };
 
 const CALL_STATUS: Record<HaikuCall["status"], { label: string; cls: string }> = {
@@ -104,7 +107,8 @@ function toPatch(draft: Draft, current: HaikuSettings): { patch: HaikuSettingsPa
   return { patch, invalid };
 }
 
-export function HaikuSettingsPanel() {
+/** `embedded` = als Unterseite Einstellungen → Nyx → Motor & Verbrauch (Kopf und Rand macht die Unterseite). */
+export function HaikuSettingsPanel({ embedded = false }: { embedded?: boolean } = {}) {
   const qc = useQueryClient();
   const status = useHaikuStatus();
   const calls = useQuery({ queryKey: ["haiku", "calls"], queryFn: () => fetchHaikuCalls(50) });
@@ -127,12 +131,48 @@ export function HaikuSettingsPanel() {
   const { patch, invalid } = s ? toPatch(draft, s.settings) : { patch: {}, invalid: false };
   const dirty = Object.keys(patch).length > 0;
 
+  const callsSection = (
+      <section aria-label={t("Letzte Aufrufe")} className="cc-card grid min-w-0 gap-2 p-4">
+        <h2 className="font-display text-headline font-semibold text-a-ink">{t("Letzte Aufrufe")}</h2>
+        {calls.isLoading && <div className="h-[120px] animate-pulse rounded-lg bg-a-p2 motion-reduce:animate-none" />}
+        {calls.isError && <ErrorBox text={t("Aufrufe konnten nicht geladen werden.")} onRetry={() => void calls.refetch()} />}
+        {calls.isSuccess && calls.data.length === 0 && <p className="text-caption text-a-mut">{t("Noch keine Aufrufe.")}</p>}
+        {calls.isSuccess && calls.data.length > 0 && (
+          <ul className="grid min-w-0 gap-0.5">
+            {calls.data.map((c, i) => (
+              <li
+                key={c.id}
+                className="cc-rise grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 rounded-lg px-2.5 py-1.5 hover:bg-a-p2 sm:grid-cols-[minmax(0,1.2fr)_repeat(4,auto)]"
+                style={riseStyle(i)}
+                title={c.error ?? undefined}
+              >
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="truncate text-callout text-a-ink">{CALL_KIND[c.kind] ?? c.kind}</span>
+                  <span className={cn("shrink-0 rounded-full px-1.5 py-px font-mono text-label", CALL_STATUS[c.status]?.cls)}>{CALL_STATUS[c.status]?.label ?? c.status}</span>
+                </span>
+                <span className="font-mono text-caption tabular-nums text-a-mut" title={formatDateTime(c.createdAt)}>
+                  {relativeTime(c.createdAt)}
+                </span>
+                <span className="font-mono text-caption tabular-nums text-a-mut">{formatDuration(c.durationMs)}</span>
+                <span className="font-mono text-caption tabular-nums text-a-mut">
+                  {formatTokensCompact(c.inputTokens)} → {formatTokensCompact(c.outputTokens)}
+                </span>
+                <span className="font-mono text-caption tabular-nums text-a-ink">{formatUsd(c.costUsd)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+  );
+
   return (
-    <div className="grid w-full min-w-0 content-start gap-4 p-4 md:p-6">
-      <header className="grid gap-1">
-        <h1 className="font-display text-title2 font-bold text-a-ink">Nyx</h1>
-        <p className="text-callout text-a-mut">{t("Motor, Budget und Zeiten für Briefing, Recap und Rundgang.")}</p>
-      </header>
+    <div className={cn("grid w-full min-w-0 content-start gap-4", !embedded && "p-4 md:p-6")}>
+      {!embedded && (
+        <header className="grid gap-1">
+          <h1 className="font-display text-title2 font-bold text-a-ink">Nyx</h1>
+          <p className="text-callout text-a-mut">{t("Motor, Budget und Zeiten für Briefing, Recap und Rundgang.")}</p>
+        </header>
+      )}
 
       {status.isLoading && <div className="h-[180px] animate-pulse rounded-xl bg-a-p2 motion-reduce:animate-none" />}
       {status.isError && <ErrorBox text={t("Nyx-Status konnte nicht geladen werden.")} onRetry={() => void status.refetch()} />}
@@ -165,7 +205,7 @@ export function HaikuSettingsPanel() {
                   <span className="min-w-0 flex-1">
                     <span className="block text-callout text-a-ink">{opt.label}</span>
                     <span className="block text-caption text-a-mut">
-                      {disabled ? t("kein Schlüssel hinterlegt") : opt.kind === "api" && s.reserve.model ? `${opt.hint} · ${s.reserve.model}` : opt.hint}
+                      {disabled ? t("kein Schlüssel hinterlegt") : opt.kind === "api" && s.reserve.model ? `${opt.hint} · ${readableModel(s.reserve.model)}` : opt.hint}
                     </span>
                   </span>
                 </label>
@@ -246,37 +286,13 @@ export function HaikuSettingsPanel() {
         </form>
       )}
 
-      <section aria-label={t("Letzte Aufrufe")} className="cc-card grid min-w-0 gap-2 p-4">
-        <h2 className="font-display text-headline font-semibold text-a-ink">{t("Letzte Aufrufe")}</h2>
-        {calls.isLoading && <div className="h-[120px] animate-pulse rounded-lg bg-a-p2 motion-reduce:animate-none" />}
-        {calls.isError && <ErrorBox text={t("Aufrufe konnten nicht geladen werden.")} onRetry={() => void calls.refetch()} />}
-        {calls.isSuccess && calls.data.length === 0 && <p className="text-caption text-a-mut">{t("Noch keine Aufrufe.")}</p>}
-        {calls.isSuccess && calls.data.length > 0 && (
-          <ul className="grid min-w-0 gap-0.5">
-            {calls.data.map((c, i) => (
-              <li
-                key={c.id}
-                className="cc-rise grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 rounded-lg px-2.5 py-1.5 hover:bg-a-p2 sm:grid-cols-[minmax(0,1.2fr)_repeat(4,auto)]"
-                style={riseStyle(i)}
-                title={c.error ?? undefined}
-              >
-                <span className="flex min-w-0 items-center gap-2">
-                  <span className="truncate text-callout text-a-ink">{CALL_KIND[c.kind] ?? c.kind}</span>
-                  <span className={cn("shrink-0 rounded-full px-1.5 py-px font-mono text-label", CALL_STATUS[c.status]?.cls)}>{CALL_STATUS[c.status]?.label ?? c.status}</span>
-                </span>
-                <span className="font-mono text-caption tabular-nums text-a-mut" title={formatDateTime(c.createdAt)}>
-                  {relativeTime(c.createdAt)}
-                </span>
-                <span className="font-mono text-caption tabular-nums text-a-mut">{formatDuration(c.durationMs)}</span>
-                <span className="font-mono text-caption tabular-nums text-a-mut">
-                  {formatTokensCompact(c.inputTokens)} → {formatTokensCompact(c.outputTokens)}
-                </span>
-                <span className="font-mono text-caption tabular-nums text-a-ink">{formatUsd(c.costUsd)}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      {embedded ? (
+        <Advanced id="nyx-motor-aufrufe" hint={t("Letzte Aufrufe")}>
+          {callsSection}
+        </Advanced>
+      ) : (
+        callsSection
+      )}
     </div>
   );
 }

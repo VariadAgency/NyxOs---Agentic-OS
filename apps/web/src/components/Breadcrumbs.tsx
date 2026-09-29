@@ -6,6 +6,7 @@ import { useCategories, useSessionDetail } from "../hooks/useSessionApi";
 import { artLabel } from "../lib/arts";
 import { cn } from "../lib/cn";
 import { sessionLabel } from "../lib/sessionLabel";
+import { NYX_SECTIONS } from "../features/settings/sections";
 import { useAppInfo } from "../hooks/useAppInfo";
 import { LOCAL_SEGMENT_LABELS, NAV_ITEMS } from "../nav";
 
@@ -40,7 +41,12 @@ const PAGE_LABELS: Record<string, string> = {
   haiku: "Nyx",
   "ideen-links": t("Ideen-Links"),
   nyx: "Nyx",
+  // Nyx-Unterseiten (`/einstellungen/nyx/<id>`) mit ihrem Titel statt der Kennung.
+  ...Object.fromEntries(NYX_SECTIONS.map((s) => [s.id, s.title])),
 };
+
+/** `/einstellungen` allein ist keine Seite – der Krümel führt zur Übersicht der Einstellungen. */
+const CRUMB_TARGET: Record<string, string> = { "/einstellungen": "/settings" };
 
 interface Crumb {
   label: string;
@@ -49,7 +55,10 @@ interface Crumb {
 
 function otherCrumbs(pathname: string): Crumb[] {
   const segments = pathname.split("/").filter(Boolean);
-  return segments.map((seg, i) => ({ label: PAGE_LABELS[seg] ?? pretty(seg), to: `/${segments.slice(0, i + 1).join("/")}` }));
+  return segments.map((seg, i) => {
+    const to = `/${segments.slice(0, i + 1).join("/")}`;
+    return { label: PAGE_LABELS[seg] ?? pretty(seg), to: CRUMB_TARGET[to] ?? to };
+  });
 }
 
 /** Im Session-Vollbild zeigt der letzte Krümel den Namen statt der rohen ID — dieselbe
@@ -154,7 +163,7 @@ function PathCrumbs({ pathname }: { pathname: string }) {
                   {crumb.label}
                 </span>
               ) : (
-                <Link to={crumb.to} className="truncate text-a-mut hover:text-a-ink" title={crumb.label}>
+                <Link to={crumb.to} className="truncate text-a-mut hover:text-a-ink pointer-coarse:block pointer-coarse:py-3.5" title={crumb.label}>
                   {crumb.label}
                 </Link>
               )}
@@ -200,7 +209,7 @@ function CollapsedLevels({ crumbs }: { crumbs: Crumb[] }) {
         aria-controls={open ? menuId : undefined}
         title={crumbs.map((c) => c.label).join(" / ")}
         onClick={() => setOpen((v) => !v)}
-        className={cn("rounded px-1 leading-5 text-a-mut transition-colors duration-150 hover:bg-a-p2 hover:text-a-ink focus-visible:outline-2 focus-visible:outline-a-acc", open && "bg-a-p2 text-a-ink")}
+        className={cn("rounded px-1 leading-5 text-a-mut pointer-coarse:min-h-11 pointer-coarse:min-w-11 transition-colors duration-150 hover:bg-a-p2 hover:text-a-ink focus-visible:outline-2 focus-visible:outline-a-acc", open && "bg-a-p2 text-a-ink")}
       >
         …
       </button>

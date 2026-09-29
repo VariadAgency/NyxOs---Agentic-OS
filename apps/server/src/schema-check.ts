@@ -86,6 +86,18 @@ export const MIGRATION_SENTINELS: Record<string, { table: string; column: string
   "0040_nyx_app_api": { table: "nyx_api_calls", column: "pending_body" },
   // App-Einstellungen (Sprache, Name, Onboarding, automatische Updates).
   "0041_app_settings": { table: "app_settings", column: "user_name" },
+  // Feedback & Unterstützen: Postausgang + Adresse der Meldestelle.
+  "0042_support": { table: "support_outbox", column: "client_id" },
+  // Notifications: rules of the pipeline + decision/feedback per notification.
+  "0043_notification_rules": { table: "push_log", column: "feedback_at" },
+  // Agents in the session chat: agents hidden in the archive.
+  "0044_session_agent_marks": { table: "session_agent_marks", column: "hidden_at" },
+  // Betrieb & Zugriff: chosen way, form values, checks, last outside access.
+  "0045_hosting_profile": { table: "hosting_profile", column: "remote_seen" },
+  // „Nyx fasst zusammen“ – Session-Zusammenfassungen.
+  "0046_session_summaries": { table: "session_summaries", column: "messages_covered" },
+  // Focus button (auto / away / do not disturb).
+  "0048_focus_state": { table: "focus_state", column: "set_by" },
 };
 
 function rowsOf(result: unknown): unknown[] {

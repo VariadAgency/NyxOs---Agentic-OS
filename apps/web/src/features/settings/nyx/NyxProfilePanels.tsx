@@ -1,6 +1,7 @@
-// Einstellungen → Nyx (Route `/einstellungen/nyx`). Von oben nach unten: Vorlagen, Live-Beispielsatz,
-// Verhaltens-Regler, Persönlichkeit, Nutzerprofil; unten fest: Zurücksetzen · Speichern. Der Server baut aus
-// genau diesen Werten den Prompt-Abschnitt (`apps/server/src/nyx/persona.ts`).
+// Einstellungen → Nyx → Persönlichkeit und Über dich. Formerly one long page, now two subpages with a shared draft
+// (`NyxProfileContext`): Persönlichkeit = Vorlagen, Live-Beispielsatz, Regler, Charakter; Über dich = Nutzerprofil.
+// Fixed at the bottom: Zurücksetzen · Speichern (`NyxSaveBar`). The server builds the prompt section from exactly
+// these values (`apps/server/src/nyx/persona.ts`).
 import "./nyx.css";
 import {
   NYX_FIELD_MAX,
@@ -19,22 +20,22 @@ import {
   type NyxSliderKey,
   type NyxUserProfile,
 } from "@nyxos/shared";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { type CSSProperties, type ReactNode, useId, useMemo, useState } from "react";
-import { PageShell } from "../../../components/PageShell";
+import { Link } from "react-router";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { cn } from "../../../lib/cn";
 import { friendlyError } from "../../../lib/friendlyError";
-import { SettingsTabs } from "../SettingsTabs";
-import { createNyxPreset, deleteNyxPreset, fetchNyxPresets, fetchNyxProfile, PRESETS_KEY, PROFILE_KEY, saveNyxProfile } from "./nyxApi";
-import { NyxVoiceSettings } from "./NyxVoiceSettings";
+import { Advanced } from "../Advanced";
+import { createNyxPreset, deleteNyxPreset, PRESETS_KEY, PROFILE_KEY } from "./nyxApi";
+import { useNyxProfile } from "./NyxProfileContext";
 import { PREVIEW_QUESTION, previewAnswer } from "./preview";
 
 const FIELD =
   "w-full min-w-0 rounded-lg border border-a-line bg-a-p2 px-3 py-2 font-body text-callout text-a-ink placeholder:text-a-mut focus:border-a-acc focus:outline-none";
 const LABEL = "font-mono text-label uppercase tracking-wide text-a-mut";
-const BTN = "rounded-lg border border-a-line px-3 py-1.5 text-caption text-a-ink transition-colors hover:bg-a-p2 disabled:opacity-50";
-const BTN_PRIMARY = "rounded-lg border border-transparent bg-a-primary px-4 py-1.5 text-caption font-semibold text-a-on-primary hover:brightness-110 disabled:opacity-50";
+const BTN = "min-h-11 rounded-lg border border-a-line px-3 py-1.5 text-caption text-a-ink transition-colors hover:bg-a-p2 disabled:opacity-50 md:min-h-0";
+const BTN_PRIMARY = "min-h-11 rounded-lg border border-transparent bg-a-primary px-4 py-1.5 text-caption font-semibold text-a-on-primary hover:brightness-110 disabled:opacity-50 md:min-h-0";
 
 const USER_FIELDS: { key: keyof NyxUserProfile; label: string; placeholder: string; long?: boolean }[] = [
   { key: "name", label: t("Name"), placeholder: t("Wie soll Nyx dich nennen?") },
@@ -46,49 +47,29 @@ const USER_FIELDS: { key: keyof NyxUserProfile; label: string; placeholder: stri
   { key: "notes", label: t("Sonst noch"), placeholder: t("Alles Weitere, das Nyx über dich wissen soll"), long: true },
 ];
 
-export function NyxSettingsPage() {
-  const qc = useQueryClient();
-  const profileQ = useQuery({ queryKey: PROFILE_KEY, queryFn: fetchNyxProfile });
-  const presetsQ = useQuery({ queryKey: PRESETS_KEY, queryFn: fetchNyxPresets });
-  const [draft, setDraft] = useState<NyxProfile | null>(null);
-  const saved = profileQ.data?.profile ?? null;
-  const current = draft ?? saved;
-  const dirty = draft !== null && JSON.stringify(draft) !== JSON.stringify(saved);
+/** Loading/error of the profile; shows the children only once it is there. */
+function ProfileGate({ children }: { children: (current: NyxProfile) => ReactNode }) {
+  const { profileQ, current } = useNyxProfile();
+  if (profileQ.isLoading) return <Skeleton className="h-64 w-full" />;
+  if (profileQ.isError)
+    return (
+      <div className="grid gap-2 rounded-xl border border-a-bad/40 bg-a-p p-4 text-callout text-a-ink">
+        <p>{friendlyError(profileQ.error, t("Die Nyx-Einstellungen ließen sich gerade nicht laden."))}</p>
+        <button type="button" className={cn(BTN, "w-fit")} onClick={() => void profileQ.refetch()}>
+          {t("Erneut versuchen")}
+        </button>
+      </div>
+    );
+  return current ? <>{children(current)}</> : null;
+}
 
-  const save = useMutation({
-    mutationFn: saveNyxProfile,
-    onSuccess: (res) => {
-      qc.setQueryData(PROFILE_KEY, res);
-      setDraft(null);
-    },
-  });
-
-  const edit = (fn: (p: NyxProfile) => NyxProfile) => {
-    if (!current) return;
-    save.reset();
-    setDraft(fn(current));
-  };
-
+/** Subpage „Persönlichkeit“: presets, sample sentence, sliders; character/tone/address/soul under „Erweitert“. */
+export function NyxPersonalityPanel() {
+  const { presetsQ, edit } = useNyxProfile();
   return (
-    <PageShell className="pb-28" gap="gap-5">
-      <SettingsTabs />
-      <header className="grid gap-1">
-        <h1 className="font-display text-title2 font-medium text-a-ink">Nyx</h1>
-        <p className="text-callout text-a-mut">{t("So kennt dich Nyx – und so antwortet er dir. Gilt im Browser, per Stimme und in Telegram.")}</p>
-      </header>
-
-      {profileQ.isLoading && <Skeleton className="h-64 w-full" />}
-      {profileQ.isError && (
-        <div className="grid gap-2 rounded-xl border border-a-bad/40 bg-a-p p-4 text-callout text-a-ink">
-          <p>{friendlyError(profileQ.error, t("Die Nyx-Einstellungen ließen sich gerade nicht laden."))}</p>
-          <button type="button" className={cn(BTN, "w-fit")} onClick={() => void profileQ.refetch()}>
-            {t("Erneut versuchen")}
-          </button>
-        </div>
-      )}
-
-      {current && profileQ.data && (
-        <>
+    <ProfileGate>
+      {(current) => (
+        <div className="grid min-w-0 gap-5">
           <PresetBar
             presets={presetsQ.data?.presets ?? []}
             profile={current}
@@ -99,26 +80,64 @@ export function NyxSettingsPage() {
           />
           <PreviewCard profile={current} />
           <SliderSection profile={current} onChange={(key, v) => edit((c) => ({ ...c, sliders: { ...c.sliders, [key]: v }, activePreset: null }))} />
-          <PersonalitySection value={current.personality} onChange={(personality) => edit((c) => ({ ...c, personality }))} />
-          <UserSection value={current.user} onChange={(user) => edit((c) => ({ ...c, user }))} />
-          <NyxVoiceSettings />
-
-          <div className="sticky bottom-0 z-10 -mx-4 flex flex-wrap items-center justify-end gap-3 border-t border-a-line bg-a-bg/90 px-4 py-3 backdrop-blur md:-mx-6 md:px-6">
-            <span className="mr-auto text-caption" aria-live="polite">
-              {save.isError && <span className="text-a-bad">{friendlyError(save.error, t("Nicht gespeichert – bitte noch einmal."))}</span>}
-              {!save.isError && dirty && <span className="text-a-wait">{t("Noch nicht gespeichert")}</span>}
-              {!save.isError && !dirty && save.isSuccess && <span className="text-a-ok">{t("Gespeichert")}</span>}
-            </span>
-            <button type="button" className={BTN} onClick={() => edit(() => profileQ.data.defaults)} title={t("Alle Felder und Regler auf die Startwerte")}>
-              {t("Zurücksetzen")}
-            </button>
-            <button type="button" className={BTN_PRIMARY} disabled={!dirty || save.isPending} onClick={() => draft && save.mutate(draft)}>
-              {save.isPending ? t("Speichert …") : t("Speichern")}
-            </button>
-          </div>
-        </>
+          <Advanced id="nyx-charakter" hint={t("Charakter, Ton, Anrede, Seele")}>
+            <PersonalitySection value={current.personality} onChange={(personality) => edit((c) => ({ ...c, personality }))} />
+          </Advanced>
+        </div>
       )}
-    </PageShell>
+    </ProfileGate>
+  );
+}
+
+/** Subpage „Über dich“. */
+export function NyxAboutPanel() {
+  const { edit } = useNyxProfile();
+  return <ProfileGate>{(current) => <UserSection value={current.user} onChange={(user) => edit((c) => ({ ...c, user }))} />}</ProfileGate>;
+}
+
+/** Overview: small preview „So spricht Nyx“ – a tap opens the personality. */
+export function NyxPreviewSummary() {
+  const { current, profileQ } = useNyxProfile();
+  const text = useMemo(() => (current ? previewAnswer(current) : ""), [current]);
+  if (profileQ.isLoading) return <Skeleton className="h-28 w-full" />;
+  if (!current) return null;
+  return (
+    <Link
+      to="/einstellungen/nyx/persoenlichkeit"
+      state={{ fromOverview: true }}
+      data-nyx="nyx-vorschau"
+      className="grid min-w-0 gap-2 rounded-xl border border-a-nyx/35 bg-a-p p-4 transition-colors hover:border-a-nyx/60 focus-visible:outline-2 focus-visible:outline-a-acc md:p-5"
+    >
+      <span className={LABEL}>{t("So spricht Nyx")}</span>
+      <span className="text-caption text-a-mut">
+        {t("Du fragst:")} {quote(PREVIEW_QUESTION)}
+      </span>
+      <span data-testid="nyx-preview-summary" className="line-clamp-3 max-w-[70ch] text-headline leading-relaxed text-a-ink">
+        {text}
+      </span>
+    </Link>
+  );
+}
+
+/** Fixed bar at the bottom: state · Zurücksetzen · Speichern. */
+export function NyxSaveBar() {
+  const { profileQ, draft, dirty, save, edit } = useNyxProfile();
+  if (!profileQ.data) return null;
+  const defaults = profileQ.data.defaults;
+  return (
+    <div className="sticky bottom-0 z-10 -mx-4 flex flex-wrap items-center justify-end gap-3 border-t border-a-line bg-a-bg/90 px-4 py-3 backdrop-blur md:-mx-6 md:px-6">
+      <span className="mr-auto text-caption" aria-live="polite">
+        {save.isError && <span className="text-a-bad">{friendlyError(save.error, t("Nicht gespeichert – bitte noch einmal."))}</span>}
+        {!save.isError && dirty && <span className="text-a-wait">{t("Noch nicht gespeichert")}</span>}
+        {!save.isError && !dirty && save.isSuccess && <span className="text-a-ok">{t("Gespeichert")}</span>}
+      </span>
+      <button type="button" className={BTN} onClick={() => edit(() => defaults)} title={t("Alle Felder und Regler auf die Startwerte")}>
+        {t("Zurücksetzen")}
+      </button>
+      <button type="button" className={BTN_PRIMARY} disabled={!dirty || save.isPending} onClick={() => draft && save.mutate(draft)}>
+        {save.isPending ? t("Speichert …") : t("Speichern")}
+      </button>
+    </div>
   );
 }
 
@@ -250,7 +269,7 @@ function PreviewCard({ profile }: { profile: NyxProfile }) {
 
 function SliderSection({ profile, onChange }: { profile: NyxProfile; onChange: (key: NyxSliderKey, value: number) => void }) {
   return (
-    <Section title={t("Verhalten")} hint={t("Schieb die Regler – der Beispielsatz oben ändert sich sofort. Unter jedem Regler steht, was Nyx genau gesagt bekommt.")}>
+    <Section title={t("Verhalten")} hint={t("Unter jedem Regler steht, was Nyx genau gesagt bekommt.")}>
       <div className="grid gap-5">
         {NYX_SLIDERS.map((s) => {
           const value = profile.sliders[s.key];
@@ -260,7 +279,8 @@ function SliderSection({ profile, onChange }: { profile: NyxProfile; onChange: (
               <div className="flex items-baseline justify-between gap-3">
                 <span className="text-callout font-medium text-a-ink">{s.label}</span>
               </div>
-              <div className="grid grid-cols-[minmax(0,7.5rem)_minmax(0,1fr)_minmax(0,7.5rem)] items-center gap-3">
+              {/* On the phone both poles stand above the slider (otherwise there is hardly room for it). */}
+              <div className="grid grid-cols-2 items-center gap-x-3 gap-y-1 sm:grid-cols-[minmax(0,7.5rem)_minmax(0,1fr)_minmax(0,7.5rem)]">
                 <span className={cn("truncate text-caption", value < 50 ? "text-a-ink" : "text-a-mut")}>{s.left}</span>
                 <input
                   type="range"
@@ -271,10 +291,10 @@ function SliderSection({ profile, onChange }: { profile: NyxProfile; onChange: (
                   aria-label={s.label}
                   aria-valuetext={`${s.left} ↔ ${s.right}: ${stage}`}
                   onChange={(e) => onChange(s.key, Number(e.target.value))}
-                  className="nyx-range"
+                  className="nyx-range order-3 col-span-2 sm:order-none sm:col-span-1"
                   style={{ "--c": `var(--${s.color})`, "--p": `${value}%` } as CSSProperties}
                 />
-                <span className={cn("truncate text-right text-caption", value >= 50 ? "text-a-ink" : "text-a-mut")}>{s.right}</span>
+                <span className={cn("truncate text-right text-caption sm:order-none", value >= 50 ? "text-a-ink" : "text-a-mut")}>{s.right}</span>
               </div>
               <p className="text-caption text-a-mut">{stage}</p>
             </div>

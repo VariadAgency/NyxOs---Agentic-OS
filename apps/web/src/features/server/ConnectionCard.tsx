@@ -52,7 +52,7 @@ function Copy({ command }: { command: string }) {
             setTimeout(() => setCopied(false), 1500);
           });
         }}
-        className="shrink-0 rounded-md border border-a-line px-2 py-1 text-caption text-a-ink transition-colors duration-150 hover:bg-a-p2"
+        className="shrink-0 rounded-md border border-a-line px-2 py-1 text-caption text-a-ink transition-colors duration-150 hover:bg-a-p2 pointer-coarse:min-h-11"
       >
         {copied ? t("Kopiert") : t("Kopieren")}
       </button>

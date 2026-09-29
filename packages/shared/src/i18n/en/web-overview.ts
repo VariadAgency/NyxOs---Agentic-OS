@@ -616,6 +616,8 @@ const en: Record<string, string> = {
   "Im Terminal {cmd} starten und im Browser mit deinem Claude-Konto anmelden.": "Run {cmd} in a terminal and sign in with your Claude account in the browser.",
   "Oder ohne Abo: in den Einstellungen unter „Zugänge“ einen API-Schlüssel eintragen.": "Or, without a subscription: add an API key under Settings → Credentials.",
   "Danach „Erneut prüfen“ – dann ist Nyx bereit.": "Then click “Check again” and Nyx is ready.",
+  // --- Settings overview + subpages, phone (bottom bar, terminal keys)
+  "Warnungen kommen als Push aufs Handy, sobald Push eingerichtet und „Nutzung über Warnschwelle“ an ist (Einstellungen → Mitteilungen).": "Warnings arrive as push on your phone once push is set up and “Usage above warning threshold” is on (Settings → Notifications).",
 };
 
 export default en;

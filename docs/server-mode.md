@@ -34,7 +34,7 @@ it through the tunnel or Tailscale.
 On the server:
 
 ```bash
-git clone https://github.com/OWNER/nyxos.git
+git clone https://github.com/VariadAgency/NyxOs---Agentic-OS.git
 cd nyxos
 cp infra/.env.example infra/.env
 chmod 600 infra/.env
@@ -147,6 +147,21 @@ on your computer:
 
 Open NyxOS at `https://<server>.<tailnet>.ts.net`.
 
+### Reaching NyxOS from your phone
+
+**Settings → Operation & access** builds the commands for you: fill in your server's Tailscale name (or a
+Cloudflare Tunnel host name, or your own domain) and copy the steps — `tailscale serve`, `NYXOS_ALLOWED_HOSTS` +
+`NYXOS_AUTH_READS=1` in `infra/.env` (with a backup copy), restart, then a passkey for the new address (Settings →
+Account & sign-in → „Create code“, a passkey only works for the address it was created at). „Check“ asks
+`<address>/health` from the server; a Tailscale name the server itself cannot resolve shows „not confirmed yet“
+until you open the address on your phone — that visit is the proof NyxOS remembers.
+
+The same works in **local mode**: `tailscale serve --bg --https=443 http://127.0.0.1:<port>` on your computer,
+the address added to `NYXOS_ALLOWED_HOSTS` of the local service (macOS: the launchd plist, rewritten by
+`nyxos update`; Linux: a systemd drop-in next to `nyxos-server.service`), `nyxos restart`, and a one-time
+sign-in link for the phone from `NYXOS_NO_BROWSER=1 nyxos open` with `http://127.0.0.1:<port>` replaced by your
+tailnet address (local mode has no passkeys).
+
 > `nyxos update` and `nyxos setup` configure the bridge for local mode again. In server mode, update the
 > server with Git + Docker Compose (below) and re-run the bridge `install` command after updating NyxOS on your
 > computer.
@@ -195,8 +210,10 @@ Model licenses are listed in [NOTICE](../NOTICE).
 
 A small [ntfy](https://ntfy.sh) server lets NyxOS send approvals, finished night runs and briefings to your
 phone. Access is token-protected (`deny-all` by default). Set `NTFY_PUBLIC_URL` to the address your phone
-reaches (Tailscale), then subscribe under **Settings → General → Push**. iOS delivery goes through the ntfy.sh
-upstream; your messages stay on your server.
+reaches (Tailscale), then subscribe under **Settings → Notifications → Advanced → Set up the phone** (server
+address and secret topic to copy, or a QR code to scan with the phone camera). iOS delivery goes through the
+ntfy.sh upstream; your messages stay on your server. When and how the phone is notified (per occasion, style,
+Nyx checks/writes, quiet hours) is set on the same page – see the [guide](guide.md#notifications).
 
 ### Container logs (Dozzle)
 

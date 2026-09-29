@@ -367,21 +367,33 @@ export class ClaudeSessionParser {
       }
     }
 
+    // Live tokens of a sub-agent: usage, message id and model on the FIRST event of this line (the server sums per
+    // agent, per `msgId` only the largest value). Not for main-session lines: their tokens come via the summary.
+    const extra: Json =
+      !main && usage
+        ? {
+            usage: { input: usage.input, output: usage.output, cacheRead: usage.cacheRead, cacheCreation: usage.cacheCreation },
+            msgId: str(msg.id) ?? null,
+            ...(model && model !== "<synthetic>" ? { model } : {}),
+          }
+        : {};
+
     const content = msg.content;
     if (typeof content === "string") {
-      emit(uuid, "assistant", clipText(content, this.textMax));
+      emit(uuid, "assistant", { ...clipText(content, this.textMax), ...extra });
       return;
     }
     if (!Array.isArray(content) || content.length === 0) {
-      emit(uuid, "assistant", {});
+      emit(uuid, "assistant", { ...extra });
       return;
     }
     content.forEach((raw, i) => {
       const id = i === 0 ? uuid : `${uuid}#${i}`;
       const b = isObj(raw) ? raw : {};
-      if (b.type === "tool_use") emit(id, "tool_call", this.onToolUse(b));
-      else if (b.type === "thinking" || b.type === "redacted_thinking") emit(id, "thinking", {});
-      else emit(id, "assistant", clipText(str(b.text) ?? "", this.textMax));
+      const first = i === 0 ? extra : {};
+      if (b.type === "tool_use") emit(id, "tool_call", { ...this.onToolUse(b), ...first });
+      else if (b.type === "thinking" || b.type === "redacted_thinking") emit(id, "thinking", { ...first });
+      else emit(id, "assistant", { ...clipText(str(b.text) ?? "", this.textMax), ...first });
     });
   }
 
@@ -400,6 +412,12 @@ export class ClaudeSessionParser {
     // "genutzter Skill". Ohne diesen Sonderfall bleibt `target` null (siehe SORTIER-BEFUND.md).
     // auch die ältere Form `command` und „/name“ ergeben den Namen (sonst zählt die Nutzung nie).
     const target = name === "Skill" ? (skillKeyFrom(input.skill) ?? skillKeyFrom(input.command)) : toolTarget(input);
+    // The final report of a background agent is ONLY here (`SubagentHandback({ message })`) — pass it on as text so
+    // the "result" in the chat is right live (otherwise only via the archive digest, delayed).
+    if (name === "SubagentHandback") {
+      const message = str(input.message);
+      if (message) return { name, toolUseId, target: null, ...clipText(message, this.textMax) };
+    }
     return { name, toolUseId, target };
   }
 

@@ -20,7 +20,7 @@ import unittest
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 
-from nyx_voice.catalog import DEFAULT_STT, DEFAULT_TTS, DEFAULT_TTS_VOICES, FALLBACK_TTS, TTS_VOICES, RemoteFile
+from nyx_voice.catalog import DEFAULT_STT, DEFAULT_TTS, DEFAULT_TTS_VOICES, FALLBACK_TTS, IMPORTABLE_TTS, TTS_VOICES, RemoteFile
 from nyx_voice.download import DownloadError, ensure_model, is_installed
 from nyx_voice.engines import FakeStreamingTts, FakeStt, FakeTts, pocket_config, spec_for_folder
 from nyx_voice.server import make_handler, service_from_env
@@ -166,7 +166,12 @@ class CatalogTests(unittest.TestCase):
             self.assertTrue(spec.label, spec.id)
             self.assertNotIn("NC", spec.license, spec.id)
         self.assertNotIn("de_DE-pavoque-low", TTS_VOICES)
-        self.assertEqual(DEFAULT_TTS_VOICES[0], POCKET)
+        # Thorsten (clear) is the German main voice, Jürgen the second choice; the other Thorsten variants are
+        # neither loaded nor offered for import.
+        self.assertEqual(DEFAULT_TTS_VOICES[:2], ["de_DE-thorsten-high", POCKET])
+        for retired in ("de_DE-thorsten-low", "de_DE-thorsten-medium", "de_DE-thorsten_emotional-medium"):
+            self.assertNotIn(retired, DEFAULT_TTS_VOICES)
+            self.assertNotIn(retired, IMPORTABLE_TTS)
         self.assertIn(FALLBACK_TTS, DEFAULT_TTS_VOICES)
         self.assertEqual(TTS_VOICES["de_DE-thorsten_emotional-medium"].speaker_id, 4)
 
@@ -271,7 +276,7 @@ class VoiceChoiceTests(unittest.TestCase):
         self.assertIsNotNone(info[POCKET]["rtf"])
         self.assertEqual(st["tts"]["fallback"], FALLBACK_TTS)
 
-    def test_falls_back_to_thorsten_medium_when_preferred_fails(self) -> None:
+    def test_falls_back_to_thorsten_when_preferred_fails(self) -> None:
         svc = service(self.tmp, [POCKET, FALLBACK_TTS], {POCKET: FakeStreamingTts(), FALLBACK_TTS: FakeTts()}, fail={POCKET})
         self.assertEqual(svc.voices[POCKET].state, "error")
         self.assertEqual(svc.effective_voice(), FALLBACK_TTS)
@@ -315,7 +320,7 @@ class VoiceChoiceTests(unittest.TestCase):
     def test_env_default_and_fake_mode(self) -> None:
         svc = service_from_env({"NYX_FAKE": "1", "NYX_MODELS_DIR": str(self.tmp)})
         self.assertEqual(list(svc.voices), DEFAULT_TTS_VOICES)
-        self.assertEqual(svc.preferred_voice, POCKET)
+        self.assertEqual(svc.preferred_voice, "de_DE-thorsten-high")
         svc2 = service_from_env({"NYX_FAKE": "1", "NYX_TTS_DEFAULT": FALLBACK_TTS, "NYX_TTS_VOICES": f"{POCKET},{FALLBACK_TTS}"})
         self.assertEqual(svc2.preferred_voice, FALLBACK_TTS)
         # Die Rückfall-Stimme ist immer dabei, auch wenn sie in der Liste fehlt.

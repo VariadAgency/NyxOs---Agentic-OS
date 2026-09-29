@@ -11,8 +11,8 @@
 //       `questionGapMinutes` (mehrere Fragen darin). Telegram nicht gekoppelt → EIN ntfy-Hinweis je Abwesenheit.
 //
 // Die Klasse ist rein (Zeitquelle, Einstellungen, Versand von außen) und damit ohne Server testbar.
-import { t, type AwayEventKind, type AwaySettings, type PushPriority } from "@nyxos/shared";
-import { isQuietNow } from "../push/dispatcher.js";
+import { notifyFamily, t, type AwayEventKind, type AwaySettings, type PushPriority } from "@nyxos/shared";
+import { isQuietNow } from "../push/deliver.js";
 import type { Presence } from "./presence.js";
 
 /** Normale Ereignisse sammeln sich mindestens so lange, bevor die erste Sammel-Mitteilung rausgeht. */
@@ -22,15 +22,27 @@ const MAX_LINES = 8;
 /** Mehr Fragen je Telegram-Nachricht werden unübersichtlich (der Rest kommt in der nächsten). */
 export const MAX_QUESTIONS_PER_MESSAGE = 5;
 
+/**
+ * Since the shared notification pipeline, single occasions also land in the batch while the user is away (the phone
+ * then gets the digest instead of every message on its own) – hence more kinds than the five away events.
+ */
+export type AwayBatchKind = AwayEventKind | "session_waiting" | "session_crashed" | "approval_needed" | "deploy_failed" | "context_guard_hinweis" | "usage_warning";
+
 export interface AwayEvent {
   /** Eindeutig je Ereignis (z. B. `s:<session>:<zeit>`) – derselbe Schlüssel kommt nie zweimal in den Stapel. */
   key: string;
-  kind: AwayEventKind;
+  kind: AwayBatchKind;
   /** Eine Zeile für die Mitteilung, z. B. „Session „Push-Umbau“ fertig“. */
   label: string;
   /** NyxOS-Seite zum Ereignis (für den Klick in ntfy). */
   path: string | null;
   important: boolean;
+  /** Session of the event (name/sub-agent in the pipeline; "waiting" + "done" of the same session = one line). */
+  sessionKey?: string | null;
+  /** The fact for the template (`{was}`), e.g. "ist fertig"; without it `label` counts. */
+  what?: string;
+  /** Time of the event (`{wann}`). */
+  occurredAt?: string | null;
 }
 
 export interface AwayQuestion {
@@ -67,10 +79,21 @@ export interface AwayNotifierDeps {
   telegram: AwayTelegram | null;
   log?: (msg: string, extra?: Record<string, unknown>) => void;
   now?: () => number;
+  /**
+   * Focus: `true` = counts as away ("away", even with an open window and away detection off), `false` = counts as
+   * present ("do not disturb": no digest, no Telegram questions), `null` = presence decides.
+   */
+  awayOverride?: () => boolean | null;
 }
 
-const KIND_ORDER: AwayEventKind[] = ["build_red", "bug_new", "auftrag_done", "session_done", "night_done"];
-const KIND_WORDS: Record<AwayEventKind, [string, string]> = {
+const KIND_ORDER: AwayBatchKind[] = ["deploy_failed", "session_crashed", "build_red", "approval_needed", "bug_new", "auftrag_done", "session_done", "session_waiting", "context_guard_hinweis", "usage_warning", "night_done"];
+const KIND_WORDS: Record<AwayBatchKind, [string, string]> = {
+  deploy_failed: ["{n} Deploy fehlgeschlagen", "{n} Deploys fehlgeschlagen"],
+  session_crashed: ["{n} Session abgestürzt", "{n} Sessions abgestürzt"],
+  approval_needed: ["{n} Freigabe nötig", "{n} Freigaben nötig"],
+  session_waiting: ["{n} Session wartet", "{n} Sessions warten"],
+  context_guard_hinweis: ["{n} Kontext-Hinweis", "{n} Kontext-Hinweise"],
+  usage_warning: ["{n} Nutzungswarnung", "{n} Nutzungswarnungen"],
   build_red: ["{n} Build rot", "{n} Builds rot"],
   bug_new: ["{n} neuer Bug", "{n} neue Bugs"],
   auftrag_done: ["{n} Auftrag erledigt", "{n} Aufträge erledigt"],
@@ -80,7 +103,7 @@ const KIND_WORDS: Record<AwayEventKind, [string, string]> = {
 
 /** „3 Sessions fertig, 1 Auftrag erledigt“ + Zeilen. */
 export function summarize(events: AwayEvent[]): { title: string; message: string; path: string | null } {
-  const counts = new Map<AwayEventKind, number>();
+  const counts = new Map<AwayBatchKind, number>();
   for (const e of events) counts.set(e.kind, (counts.get(e.kind) ?? 0) + 1);
   const parts = KIND_ORDER.filter((k) => counts.has(k)).map((k) => {
     const n = counts.get(k) ?? 0;
@@ -115,13 +138,27 @@ export class AwayNotifier {
   }
 
   /**
+   * An occasion from the pipeline (the user is away) goes into the batch. The same message of a session ("waiting"
+   * or "done") is in it only once. `false` = already contained.
+   */
+  enqueue(e: AwayEvent): boolean {
+    if (this.batch.has(e.key)) return false;
+    if (e.sessionKey) {
+      const family = notifyFamily(e.kind);
+      for (const b of this.batch.values()) if (b.sessionKey === e.sessionKey && notifyFamily(b.kind) === family) return false;
+    }
+    this.batch.set(e.key, { ...e, at: this.now() });
+    return true;
+  }
+
+  /**
    * Ein Takt (Server-Ticker, jede Minute): neue Ereignisse aufnehmen, dann entscheiden, ob gesendet wird.
    * `openQuestions` = ALLE gerade offenen Fragen (beantwortete fallen so von selbst heraus).
    */
   async tick(input: { events: AwayEvent[]; openQuestions: AwayQuestion[] }): Promise<{ away: boolean; sentEvents: number; sentQuestions: number }> {
     const s = await this.d.settings();
     const now = this.now();
-    const away = s.enabled && this.d.presence.isAway(s.awayAfterMinutes * 60_000);
+    const away = this.d.awayOverride?.() ?? (s.enabled && this.d.presence.isAway(s.awayAfterMinutes * 60_000));
     // Beantwortete/erledigte Fragen vergessen (hält den Speicher klein, eine neue Frage mit derselben Nummer gibt es nicht).
     const open = new Set(input.openQuestions.map((q) => q.key));
     for (const k of this.askedQuestions) if (!open.has(k)) this.askedQuestions.delete(k);
@@ -139,7 +176,7 @@ export class AwayNotifier {
 
     let added = 0;
     for (const e of input.events) {
-      if (!s.events[e.kind] || this.batch.has(e.key)) continue;
+      if ((s.events as Record<string, boolean>)[e.kind] === false || this.batch.has(e.key)) continue;
       this.batch.set(e.key, { ...e, at: now });
       added++;
     }
@@ -168,8 +205,10 @@ export class AwayNotifier {
     // In der Ruhezeit nur das Wichtige – der Rest bleibt im Stapel bis morgens.
     const send = quiet ? all.filter((e) => e.important) : all;
     const sum = summarize(send);
+    // Remember before sending (otherwise a second, overlapping tick still saw "due" and sent twice);
+    // also on failure: no constant fire on a broken ntfy service.
+    this.lastEventSend = now;
     const ok = await this.d.sendNtfy({ title: sum.title, message: sum.message, priority: important ? "high" : "default", path: sum.path, kind: "away_bundle" }).catch(() => false);
-    this.lastEventSend = now; // auch bei Fehlschlag: kein Dauerfeuer auf einen kaputten ntfy-Dienst
     if (!ok) {
       this.log("abwesend-ntfy-fehler", { ereignisse: send.length });
       return 0;
@@ -194,7 +233,7 @@ export class AwayNotifier {
       const ok = await this.d
         .sendNtfy({
           title: t("Nyx hat eine Frage – Telegram ist nicht gekoppelt"),
-          message: `${fresh.length === 1 ? "" : t("{n} Fragen, z. B.: ", { n: fresh.length })}${first?.title ?? ""}\n${t("Antworten geht in NyxOS (oder Telegram koppeln: Einstellungen → Telegram).")}`.trim(),
+          message: `${fresh.length === 1 ? "" : t("{n} Fragen, z. B.: ", { n: fresh.length })}${first?.title ?? ""}\n${t("Antworten geht in NyxOS (oder Telegram koppeln: Einstellungen → Mitteilungen → Telegram).")}`.trim(),
           priority: "default",
           path: fresh.length === 1 ? (first?.path ?? "/inbox") : "/inbox",
           kind: "away_question_hint",

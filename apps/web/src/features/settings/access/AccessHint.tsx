@@ -18,7 +18,7 @@ export function AccessHint() {
         <b className="text-callout font-semibold text-a-ink">{broken.length === 1 ? t("1 Zugang mit Fehler") : t("{n} Zugänge mit Fehler", { n: broken.length })}</b>
         <span className="truncate text-caption text-a-mut">{broken.map((i) => i.label).join(" · ")}</span>
       </div>
-      <Link to="/settings#zugaenge" className="rounded-md border border-a-line px-3 py-1.5 text-caption text-a-ink hover:bg-a-p2">
+      <Link to="/settings/zugaenge" className="rounded-md border border-a-line px-3 py-1.5 text-caption text-a-ink hover:bg-a-p2">
         {t("Zugänge prüfen →")}
       </Link>
     </Card>

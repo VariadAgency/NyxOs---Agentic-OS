@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
 import { SEARCH_ALL_MAX_QUERY_LENGTH, SEARCH_MIN_QUERY_LENGTH, t, type SearchAllKind } from "@nyxos/shared";
@@ -11,9 +11,11 @@ import { BAUSTELLE_NONE } from "../hooks/useSessionsRoute";
 import { ApiError, searchEverything, type Session } from "../lib/api";
 import { useAppInfo } from "../hooks/useAppInfo";
 import { NAV_ITEMS, navLabel } from "../nav";
+import { settingsPaletteItems } from "../features/settings/sections";
 import { MicButton } from "../features/voice/MicButton";
 import { CommandDialog, CommandEmptyBox, CommandGroupBox, CommandInputField, CommandItemRow, CommandListBox } from "./ui/command";
 import { sessionLabel } from "../lib/sessionLabel";
+import { openSupport, type SupportTab } from "../features/support/openSupport";
 
 /** `/sessions/<art>/<baustelle-slug|_>/<sessionId>` — URL-Schlüssel ist die nackte Session-ID. */
 function sessionPath(session: Session): string {
@@ -65,11 +67,11 @@ interface LocalItem {
   hint?: string;
 }
 
-/** Tabs + Einstellungen — die Liste lebt im Web, deshalb sucht die Palette sie selbst. */
-const SETTINGS_ITEMS: LocalItem[] = [
-  { id: "set-ideen-links", label: t("Ideen-Links verwalten"), icon: "✦", words: "einstellungen settings idea links", path: "/einstellungen/ideen-links" },
-  { id: "set-haiku", label: t("Nyx-Einstellungen"), icon: "◔", words: "einstellungen verbrauch motor settings usage engine", path: "/einstellungen/haiku" },
-  { id: "set-nyx", label: t("Nyx: Persönlichkeit und Profil"), icon: "✧", words: "einstellungen regler vorlagen settings sliders templates personality profile", path: "/einstellungen/nyx" },
+/** Feedback & Unterstützen: öffnet das Blatt direkt auf dem passenden Reiter (features/support/). */
+const SUPPORT_ITEMS: (LocalItem & { tab: SupportTab })[] = [
+  { id: "support-bug", tab: "bug", label: t("Fehler melden"), icon: "⚑", words: "bug fehler problem melden report feedback hilfe" },
+  { id: "support-idea", tab: "idea", label: t("Idee schicken"), icon: "✦", words: "idee wunsch vorschlag feature entwickler feedback idea" },
+  { id: "support-tokens", tab: "tokens", label: t("Buy me Tokens"), icon: "♥", words: "spenden spende unterstützen donate support tokens kaffee geld" },
 ];
 /** Die Palette-Zeile „Vollbild“ (auch für die Suche: „Vollbild“, „Ansicht“, „fullscreen“). */
 const FULLSCREEN_ITEM: LocalItem = { id: "fullscreen", label: t("Vollbild"), icon: "⤢", words: "vollbild ansicht fullscreen ganzer bildschirm full screen view" };
@@ -168,7 +170,8 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     askNyx(q);
   };
 
-  const local = useAppInfo().data?.mode === "local";
+  const info = useAppInfo().data;
+  const local = info?.mode === "local";
   // Local mode: „Server“ is „Dieser Rechner“ (same route).
   const navAll = local
     ? NAV_LOCAL.map((i) => {
@@ -176,10 +179,18 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         return item ? { ...i, label: navLabel(item, true) } : i;
       })
     : NAV_LOCAL;
+  // Every settings subpage (Allgemein + Nyx + Info & Hilfe) from the register, with its keywords (e.g. „Ruhezeit“
+  // finds „Mitteilungen“), only the areas of this run mode. Without input only the Nyx settings (otherwise ~20
+  // subpages fill the list); while typing all that match.
+  const settingsAll = useMemo(() => settingsPaletteItems(local ? "local" : "server"), [local]);
   const navItems = q ? navAll.filter((i) => matchesLocal(i, q)) : navAll;
-  const settingItems = q ? SETTINGS_ITEMS.filter((i) => matchesLocal(i, q)) : SETTINGS_ITEMS;
+  // Whoever types „Telegram“ wants the row „Telegram“ – hits in the name before hits only in the keywords.
+  const settingItems = q
+    ? settingsAll.filter((i) => matchesLocal(i, q)).sort((a, b) => Number(matchesLocal({ ...b, words: "" }, q)) - Number(matchesLocal({ ...a, words: "" }, q)))
+    : settingsAll.filter((i) => i.id === "set-nyx");
   const newSessionShown = !q || matchesLocal({ id: "new", label: t("Neue Session starten"), icon: "+", words: "neue session starten new start" }, q);
   const fullscreenShown = !q || matchesLocal(FULLSCREEN_ITEM, q);
+  const supportItems = q ? SUPPORT_ITEMS.filter((i) => matchesLocal(i, q)) : SUPPORT_ITEMS;
   const sessionItems = q ? [] : (sessions.data ?? []).slice(0, MAX_SESSION_ITEMS);
   // Beim Weitertippen bleiben die vorigen Treffer stehen (keepPreviousData), bis die neuen da sind.
   const groups = searching ? (all.data?.groups ?? []) : [];
@@ -197,6 +208,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   if (firstLocal) firstValue = `nav:${firstLocal.id}`;
   else if (!searching && newSessionShown) firstValue = "action:new-session";
   else if (q && fullscreenShown) firstValue = "action:fullscreen";
+  else if (q && supportItems[0]) firstValue = `action:${supportItems[0].id}`;
   else if (firstHit && groups[0]) firstValue = `hit:${groups[0].kind}:0:${firstHit.path}`;
   else if (searching && needsLogin) firstValue = "action:login";
   else if (searching && all.isError) firstValue = "action:retry";
@@ -284,6 +296,21 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
           </CommandGroupBox>
         )}
 
+        {supportItems.length > 0 && (
+          <CommandGroupBox heading={t("Feedback & Unterstützen")}>
+            {supportItems.map((item) => (
+              <CommandItemRow key={item.id} value={`action:${item.id}`} data-nyx={item.id} onSelect={() => (onOpenChange(false), openSupport(item.tab))}>
+                <span aria-hidden="true" className={item.tab === "tokens" ? "text-a-conf" : undefined}>
+                  {item.icon}
+                </span>
+                <span className="min-w-0 truncate">
+                  <Highlight text={item.label} q={q} />
+                </span>
+              </CommandItemRow>
+            ))}
+          </CommandGroupBox>
+        )}
+
         {(newSessionShown || sessionItems.length > 0) && !searching && (
           <CommandGroupBox heading="Sessions">
             {newSessionShown && (
@@ -350,7 +377,8 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
             ) : (
               <CommandItemRow value="info:none" disabled className={INFO_ROW}>
                 <span aria-hidden="true">⌕</span>
-                {t("Keine Treffer für „{q}“ – frag doch Nyx", { q })}
+                {/* Also stood below matching tabs/settings („no results“ next to results) – then it means the content search. */}
+                {navItems.length + settingItems.length > 0 ? t("In den Inhalten nichts zu „{q}“ – frag doch Nyx", { q }) : t("Keine Treffer für „{q}“ – frag doch Nyx", { q })}
               </CommandItemRow>
             )}
           </CommandGroupBox>

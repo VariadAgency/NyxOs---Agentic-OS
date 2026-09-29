@@ -1,7 +1,7 @@
 // Einstellungen → „Verbindungen“. Zeigt jede Verbindung von NyxOS, so wie der Server sie
 // gerade echt geprüft hat: gruppiert, bunt nach Zustand, mit Antwortzeit, Ursache und Lösung. Punkte,
 // die nur du lösen kannst, zeigen einen fertigen Befehl zum Kopieren. Erreichbar über die
-// Statuszeile unten links (`/settings#verbindungen`).
+// Statuszeile unten links (`/settings/verbindungen`, an own subpage).
 import { CONNECTION_GROUPS, locale, t, timeZone, type ConnectionCheck, type ConnectionState, type ConnectionsReport } from "@nyxos/shared";
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router";
@@ -10,6 +10,7 @@ import { Button } from "../../components/ui/button";
 import { Skeleton } from "../../components/ui/skeleton";
 import { cn } from "../../lib/cn";
 import { ConnectionsError, useConnections, useRecheckConnections } from "./useConnections";
+import { SupportButton } from "../support/SupportButton";
 
 export const CONNECTIONS_ANCHOR = "verbindungen";
 
@@ -125,14 +126,15 @@ function Summary({ report, onRecheck, rechecking }: { report: ConnectionsReport;
   );
 }
 
-export function ConnectionsPanel() {
+/** `bare`: on its own subpage `/settings/verbindungen` – title and explanation stand in the page header there. */
+export function ConnectionsPanel({ bare = false }: { bare?: boolean } = {}) {
   const { data, isLoading, isError, error, refetch } = useConnections();
   const local = data?.mode === "local";
   const recheck = useRecheckConnections();
   const location = useLocation();
   const ref = useRef<HTMLElement>(null);
 
-  // Sprung aus der Statuszeile (`/settings#verbindungen`): hinscrollen, sobald der Abschnitt steht.
+  // Jump by anchor (`#verbindungen`): scroll there as soon as the block stands.
   useEffect(() => {
     if (location.hash === `#${CONNECTIONS_ANCHOR}`) ref.current?.scrollIntoView?.({ block: "start", behavior: "smooth" });
   }, [location.hash, data]);
@@ -140,13 +142,18 @@ export function ConnectionsPanel() {
   const notDeployed = isError && error instanceof ConnectionsError && error.status === 404;
 
   return (
-    <section id={CONNECTIONS_ANCHOR} ref={ref} className="grid scroll-mt-4 gap-2">
-      <SectionTitle>{t("Verbindungen")}</SectionTitle>
-      <p className="text-callout text-a-mut">
-        {local
-          ? t("Jede Verbindung von NyxOS auf diesem Rechner, echt geprüft — mit Antwortzeit. Ist etwas gestört, steht darunter, warum und was hilft. „Nur du“ heißt: Das kannst nur du lösen, der Befehl steht zum Kopieren bereit. „Wartet“ heißt: Nichts ist kaputt, es kam nur noch nichts an.")
-          : t("Jede Verbindung von NyxOS, vom Server echt geprüft — mit Antwortzeit. Ist etwas gestört, steht darunter, warum und was hilft. „Nur du“ heißt: Das kannst nur du lösen, der Befehl steht zum Kopieren bereit.")}
-      </p>
+    // The anchor `#verbindungen` is the wrapper of the settings subpage (SettingsSubpage), not this section.
+    <section ref={ref} className="grid scroll-mt-4 gap-2">
+      {!bare && (
+        <>
+          <SectionTitle>{t("Verbindungen")}</SectionTitle>
+          <p className="text-callout text-a-mut">
+            {local
+              ? t("Jede Verbindung von NyxOS auf diesem Rechner, echt geprüft — mit Antwortzeit. Ist etwas gestört, steht darunter, warum und was hilft. „Nur du“ heißt: Das kannst nur du lösen, der Befehl steht zum Kopieren bereit. „Wartet“ heißt: Nichts ist kaputt, es kam nur noch nichts an.")
+              : t("Jede Verbindung von NyxOS, vom Server echt geprüft — mit Antwortzeit. Ist etwas gestört, steht darunter, warum und was hilft. „Nur du“ heißt: Das kannst nur du lösen, der Befehl steht zum Kopieren bereit.")}
+          </p>
+        </>
+      )}
 
       {isLoading && <Skeleton className="h-40 w-full" />}
       {isError && (
@@ -186,6 +193,11 @@ export function ConnectionsPanel() {
           })}
         </>
       )}
+      {/* Hakt etwas, das hier nicht steht? Direkt melden (Blatt „Feedback & Unterstützen“). */}
+      <p className="flex flex-wrap items-center gap-x-2 text-caption text-a-mut">
+        {t("Hakt etwas, das hier nicht auftaucht?")}
+        <SupportButton className="text-a-acc" />
+      </p>
     </section>
   );
 }

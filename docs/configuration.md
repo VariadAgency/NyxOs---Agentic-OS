@@ -47,7 +47,8 @@ Set automatically by the service; listed for completeness.
 | `WEB_DIR` | next to the server | Folder with the built web app. |
 | `NYXOS_SECRETS_KEY` | from `data/secrets.key` | 32-byte key (base64) for encrypted secrets. Generated on first start in local mode. |
 | `NYXOS_AUTH_READS` | `1` | `1` = reading also requires sign-in. Keep it on. |
-| `NYXOS_ALLOW_PRIVATE_URLS` | `1` | `1` = the server may call addresses on your own machine/network (needed for Ollama, LM Studio and the bridge). |
+| `NYXOS_ALLOWED_HOSTS` | — | Extra host names that may open the local server, e.g. your tailnet name after `tailscale serve` (to reach NyxOS from your phone). Set it in the service; Settings → Operation & access gives the command for macOS and Linux. |
+| `NYXOS_ALLOW_PRIVATE_URLS` | `1` | `1` = the server may call addresses on your own machine/network (needed for Ollama, LM Studio, the bridge and the self check in Settings → Operation & access). |
 | `NYXOS_HAIKU_SCHEDULER` | on | `0` = no scheduled Nyx runs (briefing, recap, background checks). |
 
 ## Server mode
@@ -59,6 +60,7 @@ Set automatically by the service; listed for completeness.
 | `ARCHIVE_DIR` | `/archive` | Transcript archive (a volume). |
 | `PORT` / `HOST` | `8080` / `0.0.0.0` | Listening address inside the container. |
 | ★ `NYXOS_ALLOWED_HOSTS` | — | Extra host names allowed in the `Host` header, comma-separated (e.g. your Tailscale name, with and without port). Requires `NYXOS_AUTH_READS=1`, otherwise the server refuses to start. |
+| `NYXOS_PORT` | `47800` | Port published on the server (`infra/docker-compose.yml`). Settings → Operation & access uses it in the commands it builds. |
 | ★ `NYXOS_AUTH_READS` | — | Set to `1` in server mode. |
 | `NYXOS_ALLOW_PRIVATE_URLS` | off | `1` = allow the server to fetch private network addresses. |
 | `NYXOS_HAIKU_REMOTE` | `0` | `1` = Nyx's Claude runs happen in the separate `agent` container. |
@@ -72,10 +74,15 @@ Set automatically by the service; listed for completeness.
 | `NTFY_TOKEN` | — | Access token for ntfy, if required. |
 | `NYXOS_NYX_VOICE_URL` | — | Address of the `nyx-voice` container, e.g. `http://nyx-voice:8090`. |
 | `NYXOS_HOSTFS_ROOTS` | — | Read-only folders for the Server tab's file browser: `id:containerPath:hostPath`, comma-separated. |
-| `NYXOS_HOST_OS_RELEASE`, `NYXOS_HOST_HOSTNAME`, `NYXOS_HOST_SYS` | `/etc/os-release`, —, `/sys` | Where the container finds host information. |
+| `NYXOS_HOST_OS_RELEASE`, `NYXOS_HOST_HOSTNAME`, `NYXOS_HOST_SYS` | `/etc/os-release`, —, `/sys` | Where the container finds host information. `NYXOS_HOST_HOSTNAME` (a file with the host's name) is also the name Settings → Operation & access shows. |
 | `NYXOS_HOST_PROBE_HOST` | — | A host name the Server tab checks for reachability. |
 | `NYXOS_SERVER_SSH_HOST` | — | SSH host (e.g. an alias from `~/.ssh/config`) for the Server tab's shell. |
 | `NYXOS_REVISION`, `NYXOS_REVISION_FILE` | — | Revision shown for the running build. |
+
+The notification rules themselves (when per occasion, style and own templates, Nyx checks/writes, minimum gap,
+sub-agents, quiet hours) have no environment variables: they are set under **Settings → Notifications** and
+stored in the database (`push_settings.rules`), readable and changeable by Nyx through `app_api`
+(`/api/notifications/settings`).
 
 ## Nyx and AI access
 
@@ -99,6 +106,15 @@ Usually configured in **Settings**; these variables override or pre-set it.
 | `NYXOS_IMPORT_ROOT` | — | Folder from which task, audit and idea files may be imported. |
 | `NYXOS_TELEGRAM_MINIAPP_URL` | — | Public HTTPS address of the Telegram mini app, if you use one. |
 | `NYXOS_IDEALINK_BASE_URL`, `NYXOS_IDEALINK_HOSTS` | request origin, — | Public base address and extra allowed hosts for shareable idea links. |
+
+## Feedback and support
+
+The **Feedback & support** sheet (bug reports, ideas, "Buy me Tokens") sends through your own NyxOS server to the
+support service of the project website. Contract for that service: [support API](support-api.md).
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `NYXOS_SUPPORT_URL` | — (empty) | Address of the support service, `https://` only (`http://localhost` only with `NYXOS_ALLOW_PRIVATE_URLS=1`, for development). Wins over the address in the sheet ("Erweitert: Meldestelle"), which wins over the built-in default `SUPPORT_URL_DEFAULT` in `packages/shared/src/support.ts`. While no address is set, bug reports and ideas wait in the outbox and go out by themselves once one is set; donations say "payment is being set up". |
 
 ## Voice
 

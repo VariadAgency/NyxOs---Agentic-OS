@@ -27,14 +27,12 @@ test.describe("Sprache, Builds, Push und Nachtmodus sichtbar", () => {
     await page.screenshot({ path: join(SHOTS, "cmdk-mikrofon.png") });
     await page.keyboard.press("Escape");
 
-    // 3) Einstellungen: Push- und Nachtmodus-Abschnitte stehen vor dem Lernbuch.
-    await page.goto("/settings");
+    // 3) Einstellungen: Push steht unter „Mitteilungen“, der Nachtmodus unter „Nutzung & Nachtmodus“.
+    await page.goto("/settings/mitteilungen");
     await expect(page.getByRole("heading", { name: "Push aufs iPhone" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Nachtmodus" })).toBeVisible();
-    const headings = await page.getByRole("heading").allTextContents();
-    expect(headings.indexOf("Push aufs iPhone")).toBeLessThan(headings.indexOf("Lernbuch"));
-    expect(headings.indexOf("Nachtmodus")).toBeLessThan(headings.indexOf("Lernbuch"));
     await page.screenshot({ path: join(SHOTS, "einstellungen.png"), fullPage: true });
+    await page.goto("/settings/nutzung");
+    await expect(page.getByRole("heading", { name: "Nachtmodus" })).toBeVisible();
 
     // 4) Server-Tab: „Letzte Builds" ist ein eigener Abschnitt (leer oder gefüllt, nie unsichtbar).
     await page.goto("/server");

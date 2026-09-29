@@ -3,6 +3,8 @@
 import { isLang, setLang, type AppInfo, type AppSettingsPatch } from "@nyxos/shared";
 
 const LANG_KEY = "nyxos.lang";
+/** Query key of the app info (`hooks/useAppInfo.ts`); here so `main.tsx` can seed it without loading React hooks. */
+export const APP_INFO_KEY = ["app-info"] as const;
 
 function storedLang(): string | null {
   try {

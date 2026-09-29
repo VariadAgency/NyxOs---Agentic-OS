@@ -393,6 +393,7 @@ export class HaikuRuntime {
     kind: HaikuCallKind,
     threadId: number | null,
     role?: ModelRole | null,
+    checkBudget = true,
   ): Promise<{ ok: true; engine: HaikuEngine; avail: EngineAvailability; settings: HaikuSettings } | { ok: false; event: RuntimeErrorEvent }> {
     //: Skills entstehen nur in einer eigenen Opus-5.5-Session, nie über diesen Motor –
     // sonst liefe der Lauf still mit Haiku.
@@ -426,6 +427,7 @@ export class HaikuRuntime {
     // „Token abgelehnt“ sperrt hier NICHT: ein neuer Versuch (z. B. „Motor testen“) soll heilen können.
     const avail = await engine.available();
     if (!avail.ok) return { ok: false, event: { type: "error", code: "not_ready", message: avail.reason ?? t(ENGINE_REASON.cliBroken), callId: null } };
+    if (!checkBudget) return { ok: true, engine, avail, settings };
     const day = localDay(this.now());
     const used = await usageForDay(this.db, day, this.now());
     if (used.costUsd >= settings.dailyBudgetUsd) {
@@ -445,10 +447,11 @@ export class HaikuRuntime {
   }
 
   /** würde ein Lauf jetzt sofort abgelehnt? Dann genau der Fehler, den `ask` melden würde – sonst `null`. */
-  async preflight(kind: HaikuCallKind, role?: ModelRole | null): Promise<RuntimeErrorEvent | null> {
+  async preflight(kind: HaikuCallKind, role?: ModelRole | null, opts: { budget?: boolean } = {}): Promise<RuntimeErrorEvent | null> {
     // mit der Rolle des Laufs – sonst prüfte der Vorab-Check den Standard-Motor, während der
     // Lauf auf einen zugewiesenen, nicht erreichbaren Anbieter geht (Faden mit Frage, aber ohne Antwort).
-    const g = await this.gate(kind, null, role);
+    // `budget: false`: only "is a model set up and reachable?" (status displays; no budget row in the call log).
+    const g = await this.gate(kind, null, role, opts.budget ?? true);
     return g.ok ? null : g.event;
   }
 
@@ -476,6 +479,13 @@ export class HaikuRuntime {
 
     const queued: RuntimeEvent[] = [];
     const release = await this.acquire((pos) => queued.push({ type: "status", status: "queued", position: pos }), o.lane);
+    // Whoever gave up while waiting in the queue (e.g. a notification sent on without Nyx after 8 s) starts no run
+    // any more – otherwise it costs budget and blocks the lane for the next ones.
+    if (o.signal?.aborted) {
+      release();
+      yield { type: "error", code: "timeout", message: t("Abgebrochen, bevor der Lauf begann."), callId: null };
+      return;
+    }
     for (const q of queued) yield q;
     const started = Date.now();
     const callId = await this.logCall({ kind: o.kind, engine: engine.kind, model: fixed?.model ?? avail.model, status: "running", threadId: o.threadId ?? null });

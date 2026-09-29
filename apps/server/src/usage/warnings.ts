@@ -13,6 +13,8 @@
 import { formatTokensCompact, type PushSettings, dateTimeFormat, t } from "@nyxos/shared";
 import type { Db } from "../db/client.js";
 import { notify } from "../push/dispatcher.js";
+import type { NotifyEnv } from "../notifications/pipeline.js";
+import { loadNotifyRules } from "../notifications/rules.js";
 import type { NtfySender } from "../push/ntfy.js";
 import { localClock, forecastWindow, type WindowForecast } from "./forecast.js";
 import { getWarningStatus } from "./goals.js";
@@ -108,12 +110,12 @@ async function collectReadings(db: Db, readings: UsageReadings, now: Date): Prom
 
 /** Prüft die Schwellen und schickt je Anlass höchstens eine Mitteilung. Gibt die ausgelösten Anlässe zurück
  * (`"daily"`, `"high:<werkzeug>:<fenster>"`, `"forecast:<werkzeug>:<fenster>"`). */
-export async function checkUsageWarnings(db: Db, sender: NtfySender, pushSettings: PushSettings, now = new Date(), readings: UsageReadings = usageReadings): Promise<string[]> {
+export async function checkUsageWarnings(db: Db, sender: NtfySender, pushSettings: PushSettings, now = new Date(), readings: UsageReadings = usageReadings, env?: NotifyEnv): Promise<string[]> {
   const settings = await loadUsageSettings(db);
   const state = await loadWarnState(db);
   const next = { dailyDay: state.dailyDay, windowAt: { ...(state.windowAt ?? {}) }, forecastFor: { ...(state.forecastFor ?? {}) } };
   const fired: string[] = [];
-  const deps = { db, sender, settings: pushSettings, now };
+  const deps = { db, sender, settings: pushSettings, now, env };
 
   if (settings.warnDailyTokens !== null) {
     const status = await getWarningStatus(db, { ...settings, warnWindowPct: null }, now);
@@ -128,8 +130,9 @@ export async function checkUsageWarnings(db: Db, sender: NtfySender, pushSetting
     }
   }
 
-  // Limit-Mitteilungen nur aus echten Werten; abschaltbar über den Anlass `usage_warning`.
-  if (pushSettings.enabledKinds.usage_warning !== false) {
+  // Limit notifications only from real values; switched off via the level of the occasion `usage_warning` ("never";
+  // the old switches are already included in it).
+  if ((await loadNotifyRules(db)).when.usage_warning !== "never") {
     const threshold = settings.warnWindowPct ?? DEFAULT_HIGH_PCT;
     for (const key of await collectReadings(db, readings, now)) {
       const alarm = realAlarm(readings.latest(key), readings.pace(key), threshold, now);

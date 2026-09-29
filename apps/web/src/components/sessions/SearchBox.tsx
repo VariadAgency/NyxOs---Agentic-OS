@@ -47,7 +47,8 @@ export function SearchBox() {
   };
 
   return (
-    <div ref={wrapRef} className="relative shrink-0">
+    // Auf dem Handy sucht der Knopf ⌕ der Kopfzeile (Befehlspalette, findet auch Sessions) – kein zweites ⌕.
+    <div ref={wrapRef} className="relative shrink-0 max-md:hidden">
       <button
         type="button"
         aria-label={t("Suchen")}

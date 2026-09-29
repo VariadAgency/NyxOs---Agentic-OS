@@ -47,9 +47,9 @@ describe("Nyx-Werkzeug „mitteilungen_liste“", () => {
     const [last, tg, bundle, first] = res.mitteilungen;
     expect(last).toMatchObject({ art: "Nutzungswarnung", titel: "Nutzung: Claude-Sitzung fast voll", zugestellt: true, sammel: false });
     expect(last?.text).toMatch(/Sitzung 88 % belegt/);
-    expect(last?.wege).toEqual(expect.arrayContaining([{ weg: "iPhone (ntfy)", zugestellt: true }]));
+    expect(last?.wege).toEqual(expect.arrayContaining([{ weg: "Handy (ntfy)", zugestellt: true }]));
     expect(tg).toMatchObject({ zugestellt: false, wege: [{ weg: "Telegram", zugestellt: false }] });
-    expect(bundle).toMatchObject({ sammel: true, wege: [{ weg: "iPhone (ntfy)", zugestellt: true }] });
+    expect(bundle).toMatchObject({ sammel: true, wege: [{ weg: "Handy (ntfy)", zugestellt: true }] });
     expect(first).toMatchObject({ titel: "Session wartet", art: "Session wartet" });
   });
 

@@ -87,12 +87,12 @@ export function LoginDialog() {
   const title = forAction && !newDevice ? t("Bitte anmelden") : t("Anmelden");
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center cc-scrim p-4" role="presentation" data-nyx-risk="" onClick={() => !busy && close()}>
+    <div className="fixed inset-0 z-50 grid place-items-center cc-scrim cc-sheet-wrap p-4" role="presentation" data-nyx-risk="" onClick={() => !busy && close()}>
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="login-title"
-        className="grid w-full max-w-sm gap-3 rounded-2xl border border-a-line bg-a-p2 p-5 shadow-pop"
+        className="cc-sheet grid w-full max-w-sm gap-3 rounded-2xl border border-a-line bg-a-p2 p-5 shadow-pop"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id="login-title" className="font-display text-callout font-semibold text-a-ink">
@@ -124,7 +124,7 @@ export function LoginDialog() {
             }}
           >
             <p className="text-caption text-a-mut">
-              {t("Der Einrichtungs-Code verbindet ein neues Gerät mit deinem Passkey. Du bekommst ihn auf einem schon angemeldeten Gerät unter Einstellungen → Anmeldung → „Code erzeugen“; für das allererste Gerät gibt ihn dir Claude.")}
+              {t("Der Einrichtungs-Code verbindet ein neues Gerät mit deinem Passkey. Du bekommst ihn auf einem schon angemeldeten Gerät unter Einstellungen → Konto & Anmeldung → „Code erzeugen“; für das allererste Gerät gibt ihn dir Claude.")}
             </p>
             <label className="grid gap-1 text-caption text-a-mut">
               {t("Einrichtungs-Code (einmalig, 15 Min gültig)")}

@@ -58,7 +58,7 @@ export function GoalsPanel({ data, onEdit }: { data: GoalsResponse | undefined; 
       <Panel title={t("Ziele")}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-callout text-a-mut">{t("Noch kein Ziel und keine Warnschwelle. Zum Beispiel „10 Mrd. Tokens im Monat“ oder „warnen bei 80 % des 5-Std-Fensters“.")}</p>
-          <button type="button" onClick={onEdit} className="rounded-md border border-a-acc/50 px-3 py-1.5 text-caption font-medium text-a-ink hover:bg-a-p2">
+          <button type="button" onClick={onEdit} className="rounded-md border border-a-acc/50 px-3 py-1.5 text-caption font-medium text-a-ink hover:bg-a-p2 pointer-coarse:min-h-11">
             {t("Ziel setzen")}
           </button>
         </div>
@@ -89,7 +89,7 @@ export function GoalsPanel({ data, onEdit }: { data: GoalsResponse | undefined; 
               {window.tools.map((w) => `${TOOL_NAME[w.tool]} ${w.pct === null ? "—" : `${Math.round(w.pct)} %`}${w.reported || w.pct === null ? "" : ` ${t("(eigene Spitze)")}`}`).join(" · ")} · {t("Warnung ab {pct} %", { pct: window.threshold })}
             </p>
           )}
-          <p className="text-a-mut">{t("Warnungen kommen als Push aufs Handy, sobald Push eingerichtet und „Nutzung über Warnschwelle“ an ist (Einstellungen → Push).")}</p>
+          <p className="text-a-mut">{t("Warnungen kommen als Push aufs Handy, sobald Push eingerichtet und „Nutzung über Warnschwelle“ an ist (Einstellungen → Mitteilungen).")}</p>
         </div>
       )}
     </Panel>

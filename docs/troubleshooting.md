@@ -165,7 +165,7 @@ Removes NyxOS and **all your NyxOS data** (sessions archive, tasks, settings, ke
 
 ```bash
 nyxos uninstall --purge
-curl -fsSL https://raw.githubusercontent.com/OWNER/nyxos/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/VariadAgency/NyxOs---Agentic-OS/main/install.sh | bash
 ```
 
 Your Claude Code and Codex transcripts in `~/.claude` and `~/.codex` are not touched — NyxOS imports them again
@@ -174,4 +174,4 @@ after the reinstall.
 ## Still stuck?
 
 Open an issue with the output of `nyxos doctor`, `nyxos status` and the relevant part of `nyxos logs` (remove
-anything private first): <https://github.com/OWNER/nyxos/issues>.
+anything private first): <https://github.com/VariadAgency/NyxOs---Agentic-OS/issues>.

@@ -61,7 +61,7 @@ representative at an online or offline event.
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
 reported to the community leaders responsible for enforcement via GitHub:
 please use a private report at
-<https://github.com/OWNER/nyxos/security/advisories/new> (it is only visible to
+<https://github.com/VariadAgency/NyxOs---Agentic-OS/security/advisories/new> (it is only visible to
 the maintainers), or contact one of the maintainers listed on the repository
 directly.
 All complaints will be reviewed and investigated promptly and fairly.

@@ -162,6 +162,11 @@ export const sessionEvents = pgTable(
     index("session_events_session_ts_idx").on(t.sessionKey, t.ts),
     // Commit → Session sucht Werkzeug-Aufrufe (`git commit` …) in einem Zeitfenster.
     index("session_events_tool_call_ts_idx").on(t.ts).where(sql`${t.kind} = 'tool_call'`),
+    // Migration 0044: sub-agent events per session and agent (the agents bar in the chat asks on every live
+    // signal) — only rows with `agentId`, therefore small.
+    index("session_events_agent_idx")
+      .on(t.sessionKey, sql`(${t.data}->>'agentId')`, t.ts)
+      .where(sql`${t.data} ? 'agentId'`),
     // inkrementeller Skill-Nutzungs-Scan (`skills/usage.ts`) – nur Skill-Aufrufe und /befehle, darum winzig.
     index("session_events_skill_scan_idx")
       .on(t.receivedAt)
@@ -170,6 +175,20 @@ export const sessionEvents = pgTable(
 );
 
 /** Geschriebene/gelesene Dateien je Session (Grundlage der Kollisionskarte in P5). */
+/** Migration 0044: the user's marks on agents of a session — so far only "hidden in the archive".
+ * The agents themselves stay in `session_events`/`sessions` (no agents table of their own, see `agents/runs.ts`). */
+export const sessionAgentMarks = pgTable(
+  "session_agent_marks",
+  {
+    sessionKey: text("session_key")
+      .notNull()
+      .references(() => sessions.id, { onDelete: "cascade" }),
+    agentId: text("agent_id").notNull(),
+    hiddenAt: ts("hidden_at").notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.sessionKey, t.agentId] })],
+);
+
 export const sessionFiles = pgTable(
   "session_files",
   {
@@ -260,6 +279,8 @@ export const pushSettings = pgTable("push_settings", {
   channels: jsonb("channels").$type<Record<string, boolean>>().notNull().default(sql`'{}'::jsonb`),
   /** `own` = eigener ntfy-Dienst, `ntfy_sh` = öffentlicher Dienst ntfy.sh. */
   ntfyTarget: text("ntfy_target").notNull().default("own"),
+  /** Rules of the notification pipeline (when/style/templates/Nyx, see `NotifyRules`); missing key = default. */
+  rules: jsonb("rules").$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
   createdAt: ts("created_at").notNull().defaultNow(),
   updatedAt: ts("updated_at").notNull().defaultNow(),
 });
@@ -284,6 +305,15 @@ export const pushLog = pgTable(
     channels: jsonb("channels").$type<{ channel: string; ok: boolean; skipped?: boolean }[]>(),
     /** Sammel-Mitteilung (z. B. Abwesenheits-Bündel „3 Sachen fertig“). */
     bundle: boolean("bundle").notNull().default(false),
+    /** What the pipeline decided (`NotifyDecision`: sent, nyx_skip, quiet_hours, sub_agent …); null = older row. */
+    decision: text("decision"),
+    /** Short reason for it (Nyx' sentence, "Telegram card" …). */
+    decisionNote: text("decision_note"),
+    /** Nyx' part (check, text written/template), see `NotifyNyxTrace`. */
+    nyx: jsonb("nyx").$type<{ review?: string; wrote?: string; note?: string }>(),
+    /** The user's feedback "passt" | "unnoetig" (examples for Nyx' check, rule suggestions). */
+    feedback: text("feedback"),
+    feedbackAt: ts("feedback_at"),
   },
   (t) => [index("push_log_kind_session_idx").on(t.kind, t.sessionKey, t.sentAt)],
 );
@@ -1334,7 +1364,7 @@ export const sessionDeliveries = pgTable(
     sessionKey: text("session_key")
       .notNull()
       .references(() => sessions.id, { onDelete: "cascade" }),
-    kind: text("kind").notNull(), // 'compact' | 'approval' | 'inbox' | 'haiku_answer' | 'chat'
+    kind: text("kind").notNull(), // 'compact' | 'approval' | 'inbox' | 'haiku_answer' | 'chat' | 'control'
     method: text("method").notNull(), // 'send_text' | 'send_message'
     payload: jsonb("payload").notNull(), // { text } bzw. { text, images }
     status: text("status").notNull().default("queued"), // 'queued' | 'sending' | 'sent' | 'expired' | 'failed' | 'cancelled'
@@ -1385,6 +1415,34 @@ export const sessionAudits = pgTable(
     finishedAt: ts("finished_at"),
   },
   (t) => [index("session_audits_session_idx").on(t.sessionKey, t.createdAt)],
+);
+
+/**
+ * „Nyx fasst zusammen“ – ausführliche Zusammenfassung einer Session (Markdown), je Lauf eine Zeile (additiv).
+ * `messagesCovered`/`coveredUntilItem` halten den Stand fest, damit NyxOS „N neue Nachrichten seitdem“ zeigen kann.
+ */
+export const sessionSummaries = pgTable(
+  "session_summaries",
+  {
+    id: serial("id").primaryKey(),
+    sessionKey: text("session_key")
+      .notNull()
+      .references(() => sessions.id, { onDelete: "cascade" }),
+    /** `running` | `done` | `error` */
+    status: text("status").notNull(),
+    text: text("text").notNull().default(""),
+    error: text("error"),
+    messagesCovered: integer("messages_covered").notNull().default(0),
+    coveredUntilItem: text("covered_until_item"),
+    coveredUntil: ts("covered_until"),
+    itemsRead: integer("items_read"),
+    itemsTotal: integer("items_total"),
+    dropped: integer("dropped").notNull().default(0),
+    callId: integer("call_id"),
+    createdAt: ts("created_at").notNull().defaultNow(),
+    finishedAt: ts("finished_at"),
+  },
+  (t) => [index("session_summaries_session_idx").on(t.sessionKey, t.createdAt)],
 );
 
 /**
@@ -1711,6 +1769,32 @@ export const awaySettings = pgTable("away_settings", {
 });
 
 /**
+ * Focus button (migration 0048): "auto" / "away" / "dnd" with an end. One row (`id = 1`); without it, "auto" applies
+ * (see `focus/service.ts`).
+ */
+export const focusState = pgTable("focus_state", {
+  id: integer("id").primaryKey().default(1),
+  mode: text("mode").notNull().default("auto"),
+  until: ts("until"),
+  since: ts("since"),
+  setBy: text("set_by"),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+});
+
+/**
+ * Betrieb & Zugriff (migration 0045): chosen way + form values (`profile`), last check per target (`checks`) and the
+ * last access through an outside address (`remote_seen`). One row (`id = 1`). No secrets – they live in the secret
+ * store (`secrets`, names `hosting.*`).
+ */
+export const hostingProfile = pgTable("hosting_profile", {
+  id: integer("id").primaryKey().default(1),
+  profile: jsonb("profile").$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
+  checks: jsonb("checks").$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
+  remoteSeen: jsonb("remote_seen").$type<Record<string, unknown> | null>(),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+});
+
+/**
  * Nyx bedient NyxOS über die eigene API (`app_api`, s. nyx/appApi/*, Migration 0040). Jede Zeile = ein Aufruf mit
  * Ergebnis (Protokoll). Riskante Aufrufe warten hier auf des Nutzers „Ausführen“ (`outcome = 'wartet'`, genau die Anfrage
  * in `pendingBody`, nach Ausführung/Absage/Verfall wieder leer). Körper im Protokoll nur geschwärzt (`bodyRedacted`).
@@ -1748,6 +1832,7 @@ export const nyxApiCalls = pgTable(
 export const schema = {
   nyxApiCalls,
   awaySettings,
+  hostingProfile,
   sessionStateSettings,
   machines,
   sessions,
@@ -1840,5 +1925,38 @@ export const appSettings = pgTable("app_settings", {
   userName: text("user_name").notNull().default(""),
   onboardingDone: boolean("onboarding_done").notNull().default(false),
   autoUpdate: boolean("auto_update").notNull().default(true),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+});
+
+/**
+ * „Feedback & Unterstützen“: Postausgang für Fehlermeldungen und Ideen an den Entwickler (support/service.ts).
+ * `status`: `draft` (Entwurf, z. B. von Nyx vorbereitet – geht nie von selbst raus) · `waiting` (wartet auf die
+ * Meldestelle bzw. Verbindung, geht im 60-s-Takt von selbst raus) · `sending` · `sent` · `rejected` (die Meldestelle
+ * hat abgelehnt, kein neuer Versuch). `client_id` ist der Idempotenz-Schlüssel beim Weiterleiten.
+ */
+export const supportOutbox = pgTable(
+  "support_outbox",
+  {
+    id: serial("id").primaryKey(),
+    kind: text("kind").notNull(),
+    status: text("status").notNull(),
+    title: text("title").notNull().default(""),
+    payload: jsonb("payload").$type<Record<string, unknown>>().notNull(),
+    clientId: text("client_id").notNull(),
+    attempts: integer("attempts").notNull().default(0),
+    lastError: text("last_error"),
+    reference: text("reference"),
+    createdAt: ts("created_at").notNull().defaultNow(),
+    updatedAt: ts("updated_at").notNull().defaultNow(),
+    nextAttemptAt: ts("next_attempt_at"),
+    sentAt: ts("sent_at"),
+  },
+  (tb) => [index("support_outbox_status_idx").on(tb.status, tb.nextAttemptAt)],
+);
+
+/** Adresse der Meldestelle aus den Einstellungen (eine Zeile, `id = 1`). `NYXOS_SUPPORT_URL` geht vor. */
+export const supportSettings = pgTable("support_settings", {
+  id: integer("id").primaryKey().default(1),
+  url: text("url").notNull().default(""),
   updatedAt: ts("updated_at").notNull().defaultNow(),
 });

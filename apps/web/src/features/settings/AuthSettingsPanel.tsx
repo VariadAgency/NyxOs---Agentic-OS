@@ -8,13 +8,14 @@
 import { locale, t, timeZone } from "@nyxos/shared";
 import { friendlyError } from "../../lib/friendlyError";
 import { useState } from "react";
-import { Card, SectionTitle } from "../../components/ui/Card";
+import { Card } from "../../components/ui/Card";
 import { Button } from "../../components/ui/button";
 import { Skeleton } from "../../components/ui/skeleton";
 import { cn } from "../../lib/cn";
 import { createDeviceSetupCode, localhostUrl, logout, logoutEverywhere, openLoginDialog } from "../terminal/authClient";
 import { useAppInfo } from "../../hooks/useAppInfo";
 import { useAuthStatus } from "../../hooks/useAuthStatus";
+import { Advanced } from "./Advanced";
 import { PasskeyList } from "./PasskeyList";
 
 const cancelled = (msg: string) => /NotAllowedError|abgebrochen|cancel|not allowed/i.test(msg);
@@ -28,7 +29,6 @@ function LocalAuthPanel() {
   const [busy, setBusy] = useState(false);
   return (
     <section className="grid gap-2">
-      <SectionTitle>{t("Anmeldung")}</SectionTitle>
       <Card className="grid gap-2 p-3">
         <div className="flex items-center gap-2 text-callout text-a-ink">
           <span className={cn("inline-block h-1.5 w-1.5 shrink-0 rounded-full", data?.authenticated ? "bg-a-ok" : "bg-a-idle")} />
@@ -103,11 +103,9 @@ function ServerAuthPanel() {
 
   return (
     <section className="grid gap-2" data-nyx-risk="">
-      <SectionTitle>{t("Anmeldung")}</SectionTitle>
-      <p className="text-callout text-a-mut">
-        {t(
-          "Ohne Anmeldung kannst du alles ansehen, aber nichts auslösen (Tippen im Terminal, Sessions starten, Regeln ändern). Die Anmeldung gilt 30 Tage und verlängert sich, solange du NyxOS nutzt. Ein Einrichtungs-Code verbindet ein weiteres Gerät (z. B. iPhone) mit deinem Passkey: Du erzeugst ihn hier auf einem schon angemeldeten Gerät, für das allererste Gerät gibt ihn dir Claude.",
-        )}
+      {/* Title/explanation come from the subpage „Konto & Anmeldung“; here only what the setup code is. */}
+      <p className="text-caption text-a-mut">
+        {t("Ohne Anmeldung kannst du alles ansehen, aber nichts auslösen. Sie gilt 30 Tage und verlängert sich, solange du NyxOS nutzt. Ein weiteres Gerät (z. B. iPhone) verbindest du mit einem Einrichtungs-Code von hier.")}
       </p>
       {moveTo && (
         <p className="text-callout text-a-wait">
@@ -198,8 +196,12 @@ function ServerAuthPanel() {
               {error}
             </p>
           )}
-          {data.authenticated && <PasskeyList />}
         </Card>
+      )}
+      {data?.authenticated && (
+        <Advanced id="passkeys" hint={t("Passkeys ansehen, umbenennen, entfernen")}>
+          <PasskeyList />
+        </Advanced>
       )}
     </section>
   );

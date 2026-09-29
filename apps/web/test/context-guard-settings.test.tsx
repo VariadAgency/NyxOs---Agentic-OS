@@ -23,7 +23,7 @@ describe("ContextGuardSettings", () => {
     );
     renderWithClient(<ContextGuardSettings />);
     await waitFor(() => expect(screen.getByText(/Standard \(alle Sessions/)).toBeInTheDocument());
-    expect(screen.getByText(/Nyx \(Werkzeug-intern/)).toBeInTheDocument();
+    expect(screen.getByText(/Nyx. eigene Sessions/)).toBeInTheDocument();
     expect(screen.getByText("opus")).toBeInTheDocument();
     // Zwei Griffe für Standard (Hinweis 60 %, Erzwingen 80 %) — je Regler zwei <input type="range">.
     const sliders = screen.getAllByRole("slider") as HTMLInputElement[];

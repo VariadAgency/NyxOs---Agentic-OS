@@ -102,7 +102,7 @@ export function ToastView({ message }: { message: string | null }) {
     <div
       role="status"
       aria-live="polite"
-      className="cc-rise fixed bottom-[calc(var(--a-demo-bar-h)+20px)] left-1/2 z-[60] max-w-[calc(100vw-32px)] -translate-x-1/2 rounded-lg border border-a-line bg-a-p3 px-4 py-2 text-caption text-a-ink shadow-lg"
+      className="cc-toast cc-above-tabbar cc-rise fixed bottom-[calc(var(--a-demo-bar-h)+20px)] left-1/2 z-[60] max-w-[calc(100vw-32px)] -translate-x-1/2 rounded-lg border border-a-line bg-a-p3 px-4 py-2 text-caption text-a-ink shadow-lg"
     >
       {message}
     </div>

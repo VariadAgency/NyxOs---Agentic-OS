@@ -12,7 +12,7 @@ export function Segmented<T extends string>({ label, options, value, onChange }:
           type="button"
           aria-pressed={value === o.value}
           onClick={() => onChange(o.value)}
-          className={cn("rounded-md px-3 py-1 text-caption transition-colors duration-150", value === o.value ? "bg-a-p3 font-semibold text-a-ink shadow-card" : "text-a-mut hover:text-a-ink")}
+          className={cn("rounded-md px-3 py-1 text-caption transition-colors duration-150 pointer-coarse:min-h-11", value === o.value ? "bg-a-p3 font-semibold text-a-ink shadow-card" : "text-a-mut hover:text-a-ink")}
         >
           {o.label}
         </button>

@@ -1,8 +1,8 @@
-// Zwei Knöpfe im Session-Kopf — „Kontext komprimieren“ (schickt `/compact`, nur wenn
-// die Session wartet, über den Weg des Kontext-Wächters) und „Session zusammenfassen & prüfen“
-// (Haiku prüft den Verlauf, das Ergebnis hängt an der Session). Gesperrt heißt nie „weg“: der Knopf
-// bleibt sichtbar und sagt, warum er gerade nicht geht.
-// Bei genug Platz stehen beide Knöpfe direkt in der Zeile, sonst im Menü „⋯“ — so bricht die Zeile
+// Knopf im Session-Kopf „Session zusammenfassen & prüfen“ (Nyx prüft den Verlauf, das Ergebnis hängt an
+// der Session). Gesperrt heißt nie „weg“: der Knopf bleibt sichtbar und sagt, warum er gerade nicht geht.
+// „Kontext komprimieren“ steht nicht hier, sondern in den Session-Infos unter „Steuerung“
+// (features/session-controls) – nur an EINER Stelle.
+// Bei genug Platz steht der Knopf direkt in der Zeile, sonst im Menü „⋯“ — so bricht die Zeile
 // nie um. Der Kopf MISST den Platz (`useFitLevel`) und sagt per `inline`, was passt; weitere
 // Kopf-Aktionen („Prozess beenden“, „Schließen“) kommen bei wenig Platz als `extra` mit ins Menü.
 import { t } from "@nyxos/shared";
@@ -12,10 +12,8 @@ import { useTooltip } from "../../components/ui/Tooltip";
 import type { Session } from "../../lib/api";
 import { cn } from "../../lib/cn";
 import { friendlyError } from "../../lib/friendlyError";
-import { useContextGuardSession } from "../context-guard/api";
-import { useBridgeStatus } from "../terminal/terminalApi";
-import { useCompactWhenWaiting, useSessionAudits, useStartAudit } from "./api";
-import { IconAudit, IconCompress, IconMore } from "./icons";
+import { useSessionAudits, useStartAudit } from "./api";
+import { IconAudit, IconMore } from "./icons";
 
 interface ActionState {
   disabledReason: string | null;
@@ -25,30 +23,6 @@ interface ActionState {
 
 type Notice = (text: string, tone: "ok" | "bad") => void;
 
-function useCompactAction(session: Session, notice: Notice): ActionState & { hint: boolean } {
-  const bridge = useBridgeStatus();
-  const compact = useCompactWhenWaiting(session.id);
-  const guard = useContextGuardSession(session.id);
-  const who = session.tool === "codex" ? "Codex" : "Claude";
-  const inNyxOS = !!session.attachable && !!session.tmuxName;
-  const reason = !(bridge.data?.online ?? false)
-    ? t("Die Brücke ist gerade nicht verbunden.")
-    : !inNyxOS
-      ? t("Die Session läuft nicht in NyxOS – übernimm sie zuerst.")
-      : session.state !== "waiting"
-        ? t("{who} arbeitet gerade – komprimieren geht, sobald die Session auf dich wartet.", { who })
-        : compact.isPending
-          ? t("Wird geschickt …")
-          : null;
-  const run = () =>
-    compact.mutate(undefined, {
-      onSuccess: (r) => notice(r.sent ? t("Komprimieren ist unterwegs – der Verlauf zeigt gleich „Kontext komprimiert“.") : (r.reason ?? t("Die Session arbeitet gerade – versuch es, sobald sie wartet.")), r.sent ? "ok" : "bad"),
-      onError: (e) => notice(friendlyError(e, t("Komprimieren hat nicht geklappt – bitte noch einmal versuchen.")), "bad"),
-    });
-  // Kontext-Wächter meldet „Komprimieren empfohlen“ → Knopf hervorheben (dieselbe Abfrage wie das Badge).
-  return { disabledReason: reason, run, pending: compact.isPending, hint: guard.data?.hint ?? false };
-}
-
 function useAuditAction(session: Session, notice: Notice): ActionState {
   const audits = useSessionAudits(session.id);
   const start = useStartAudit(session.id);
@@ -57,9 +31,9 @@ function useAuditAction(session: Session, notice: Notice): ActionState {
   const reason = !engine
     ? t("Einen Moment – ich prüfe, ob Nyx bereit ist.")
     : engine.state === "waiting_token"
-      ? t("Wartet auf Nyx-Token: Sobald du ihn einmal hinterlegt hast (Einstellungen → Nyx), geht die Prüfung.")
+      ? t("Wartet auf Nyx-Token: Sobald du ihn einmal hinterlegt hast (Einstellungen → Nyx → Motor), geht die Prüfung.")
       : engine.state === "off"
-        ? t("Nyx ist ausgeschaltet – in Einstellungen → Nyx einschalten.")
+        ? t("Nyx ist ausgeschaltet – in Einstellungen → Nyx → Motor einschalten.")
         : !engine.ready
           ? (engine.reason ?? t("Nyx ist gerade nicht bereit."))
           : running
@@ -77,11 +51,11 @@ function useAuditAction(session: Session, notice: Notice): ActionState {
 }
 
 /** Knopf mit Hinweis — der Hinweis hängt an einer Hülle, damit er auch bei gesperrtem Knopf erscheint. */
-function InlineAction({ label, icon, state, warn }: { label: string; icon: ReactNode; state: ActionState; warn?: boolean }) {
+function InlineAction({ label, icon, state }: { label: string; icon: ReactNode; state: ActionState }) {
   const tip = useTooltip(state.disabledReason ?? label);
   return (
     <span className="inline-flex" {...tip.triggerProps}>
-      <Button variant={warn && !state.disabledReason ? "warn" : "ghost"} disabled={!!state.disabledReason} onClick={state.run} className="h-(--a-ctl-h) py-0">
+      <Button variant="ghost" disabled={!!state.disabledReason} onClick={state.run} className="h-(--a-ctl-h) py-0">
         {icon}
         {label}
       </Button>
@@ -126,7 +100,6 @@ export function SessionActions({ session, inline = true, extra = [] }: { session
     noticeTimer.current = setTimeout(() => setNotice(null), 6000);
   };
   useEffect(() => () => void (noticeTimer.current && clearTimeout(noticeTimer.current)), []);
-  const compact = useCompactAction(session, showNotice);
   const audit = useAuditAction(session, showNotice);
   const [open, setOpen] = useState(false);
   const wrap = useRef<HTMLDivElement | null>(null);
@@ -146,7 +119,6 @@ export function SessionActions({ session, inline = true, extra = [] }: { session
     };
   }, [open]);
 
-  const compactLabel = t("Kontext komprimieren");
   const auditLabel = t("Session zusammenfassen & prüfen");
 
   const showMenu = !inline || extra.length > 0;
@@ -154,7 +126,6 @@ export function SessionActions({ session, inline = true, extra = [] }: { session
     <div className="relative flex shrink-0 items-center">
       {inline && (
         <div className="flex items-center gap-1">
-          <InlineAction label={compactLabel} icon={<IconCompress size={14} />} state={compact} warn={compact.hint} />
           <InlineAction label={auditLabel} icon={<IconAudit size={14} />} state={audit} />
         </div>
       )}
@@ -162,12 +133,10 @@ export function SessionActions({ session, inline = true, extra = [] }: { session
         <div ref={wrap} className="relative">
           <Button variant="ghost" aria-label={t("Weitere Aktionen")} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)} className="h-(--a-ctl-h) w-(--a-ctl-h) px-0 py-0" {...moreTip.triggerProps}>
             <IconMore size={16} />
-            {!inline && compact.hint && !compact.disabledReason && <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-a-wait" aria-hidden="true" />}
           </Button>
           {moreTip.tooltip}
           {open && (
             <div role="menu" aria-label={t("Weitere Aktionen")} className="absolute top-full right-0 z-30 mt-1.5 grid w-80 gap-0.5 rounded-lg border border-a-line bg-a-p2 p-1.5 shadow-xl shadow-black/40">
-              {!inline && <MenuAction label={compactLabel} icon={<IconCompress size={15} />} state={compact} onDone={() => setOpen(false)} />}
               {!inline && <MenuAction label={auditLabel} icon={<IconAudit size={15} />} state={audit} onDone={() => setOpen(false)} />}
               {extra.map((x) => (
                 <MenuAction

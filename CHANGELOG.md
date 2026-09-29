@@ -7,6 +7,152 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- **Session controls in the session info** — a "Controls" section (side column and the phone sheet "⋯") shows the
+  current model and switches it with one click; the list only contains models the session's tool accepts (Claude
+  Code: Anthropic models via `/model <id>`). Effort levels (`/effort low|medium|high|xhigh|max|auto`) appear only
+  when the model supports them (older Claude models have fewer or none). Commands always go through the delivery
+  queue: if the session is busy, they go out at its next pause. Codex only switches models in its own picker, so
+  NyxOS offers no switch there. New API `GET/POST /api/sessions/:id/controls` (also available to Nyx via `app_api`).
+- **Brain: "Nyx explains"** — the detail card of a brain point (side sheet and the info card in the local graph)
+  has a Nyx button at the top: a short summary of what the point is, what it stands for and its most important
+  connections. Long paths and lines in the card now wrap instead of running out of it; on phones the card uses the
+  full width.
+- **Nyx summarizes a session** — a Nyx button in the session info (side column, collapsed rail and as an icon in
+  the session head) asks Nyx for a detailed, structured summary of the session: goal · what was done (steps, changed
+  files, commits, tests) · what is running · open points and questions for you · sensible next step. It stays as a
+  collapsible card at the top of the chat (streams while Nyx writes, read aloud, copy, time), shows „3 new messages
+  since the summary“ with „Create again“, and is stored per session (`GET/POST /api/sessions/:id/summary`, migration
+  `0046_session_summaries`). Long histories are shortened to beginning + latest rounds plus a tool/file overview of the
+  whole session; paths, commit ids and numbers that don't appear in the history are left out. Runs on your own Nyx
+  model and budget – without a model you get an honest message instead. Nyx may create and read summaries itself.
+- **Nyx knows NyxOS completely** — a map of the whole app is generated from the code (`scripts/nyxos-map.mjs`,
+  also run by the server build): sidebar, every route, every settings section with sub-pages and spots, every
+  `data-nyx` control per page, the API routes with their purpose and every database table with its columns. English
+  names come from the dictionary, so the map also answers English questions. Nyx gets a short overview of all tabs
+  in its prompt and a new tool `nyxos_karte` ("skills", "where do I set quiet hours", "which table stores
+  notifications" → page, click path, controls, API, table), and never says something doesn't exist without asking
+  the map. A test fails when a route, sidebar entry or settings section has no description or the map is stale.
+- **Nyx always navigates with the cursor** — `ui_navigate` and reading the briefing no longer jump to a route: the
+  cursor clicks the sidebar entry (on phones the bottom bar or "More"), then row, tile or sub-page step by step,
+  following the click path from the map. Without a clickable way Nyx says so honestly instead of jumping.
+
+- **Focus button** — at the bottom left of the side bar (on the phone in the „More“ drawer) and as the top row of
+  Settings → Notifications: *Automatic* · *I'm away* · *Do not disturb*, each with one sentence, for 1 hour, until
+  this evening / tomorrow morning (the user's time zone) or until turned off. *I'm away* counts as away even with
+  NyxOS open (phone only), *Do not disturb* lets only approvals, crashes, failed deploys and urgent ones through to
+  the phone and logs the rest as „Focus – silenced“. Expiry in the minute tick, live update to all windows, Nyx may
+  set it through `app_api`. Messages Nyx held back to bundle are checked against the focus again before they go
+  out. `GET/PUT /api/focus`, migration `0048_focus_state` (new table).
+- **Feedback & support** — a quiet "Feedback & Unterstützen" button in the status line (under "All
+  connections"), on the connections page, at the bottom of Settings and in ⌘K opens one sheet with three tabs:
+  *report a bug* (what happened, steps, expected, optional e-mail, optional screenshot, and diagnostics with an
+  exact preview — paths, host names, addresses, tokens and e-mail addresses removed), *idea for the developer*
+  (title, description, how important) and *Buy me Tokens* (3/5/10/25 € or a free amount, once or monthly,
+  optional name and message). Payment happens inside NyxOS in a sandboxed frame of the project website.
+- `/api/support/*` on the server forwards to the support service set by `NYXOS_SUPPORT_URL` (or the setting in
+  the sheet). Without an address, or while it cannot be reached, reports wait in an **outbox** and go out by
+  themselves in the server's one-minute tick. The contract for the website is in `docs/support-api.md`.
+- Nyx may open the sheet and prepare drafts (`PUT /api/support/draft`); sending needs your confirmation,
+  donating and changing the address are never possible for Nyx.
+
+- **Settings as overview + subpages** — `/settings` is a list with search (areas and single settings, in the
+  chosen language), one subpage per area (`/settings/<area>`, „‹ Settings“ back, rarely needed parts behind
+  „Advanced“), the Nyx settings in the same pattern (`/einstellungen/nyx/<area>`, new page „Access &
+  approvals“). ⌘K knows every subpage. Local mode shows local texts (no passkeys under „Account & sign-in“).
+  „Feedback & support“ and „Info & Help“ have their own rows under „Help & feedback“.
+- **Phone** — bottom bar (Nyx · Sessions · Decisions · Overview · More), search button instead of ⌘K, safe-area
+  margins (`viewport-fit=cover`), 44 px touch targets, 16 px inputs (no iOS zoom), dialogs as bottom sheets, the
+  app follows the visible area when the keyboard is open, sessions as list → session, terminal key row (Esc, Tab,
+  Ctrl, ^C, arrows, paste/copy with fallbacks for `http://`), text size A−/A+ and pinch zoom, touch gestures in the
+  3D brain, PWA manifest with `id`.
+- **Agents in the session chat** — a bar at the bottom of the chat (and below the terminal) shows the agents of
+  the session live ("● 2 agents active · 1 done", colored dots). A click opens a popup in the chat window (a sheet
+  on the phone) with the tabs *This run* and *Archive* (earlier runs, each with the message that started it):
+  elapsed time (ticking), tokens and — when a price is stored — cost per agent. Open an agent to see what it is
+  doing right now (latest steps, current one highlighted), its task, result and its read-only transcript; add it
+  to your tasks or hide it in the archive. Full screen at `/sessions/…/agenten` (suggested from 6 active agents).
+  Codex teammates (child sessions) appear with their nickname and can be opened as their own session. A single
+  agent cannot be stopped (Claude Code has no interface for that) — the detail says so.
+- `GET /api/sessions/:id/agents-live[/:agentId]`, `POST /api/sessions/:id/agents/:agentId/hide` and
+  `…/task`; Nyx may use all of them directly (`app_api`, all reversible).
+- **Notifications as one pipeline** — every occasion (single push and the away digest) goes through *when? →
+  duplicate/minimum gap → text → Nyx checks/writes → quiet hours/bundling → channels*, and every decision is
+  logged with a reason. New page **Settings → Notifications**: per occasion *Always / When away / Never*, „never
+  notify about sub-agents“, styles *Short / With context / Detailed* with a live preview, own templates with
+  placeholders, Nyx checks (send · leave out · bundle) and Nyx writes (through your own model, 8 s limit, numbers
+  and names checked against the data), history with „Good“ / „Don't need it“ and rule suggestions, one quiet time
+  for everything, phone setup with a QR code (`uqr`, MIT). Routes `/api/notifications/*` (Nyx may use them via
+  `app_api`), migration `0043_notification_rules` (additive).
+- **Operation & access** (Settings → „Betrieb & Zugriff“) — says honestly how NyxOS runs right now (on this
+  computer with its port, or on your server; allowed addresses, bridge, sign-in for reading, reachable from the
+  phone only after a real check or a real visit through that address). Three ways — *this computer*, *own
+  server*, *rented server / provider* — and three phone ways — *Tailscale* (recommended), *Cloudflare Tunnel*,
+  *own domain* — each with short facts and a form that turns into ready commands to copy (the real `nyxos`,
+  `install.sh`, `infra/` and bridge commands; every value shell-quoted). „Check“ calls only `<address>/health`
+  with a time limit and SSRF protection. In local mode „this computer“ is the current way, and the phone gets a
+  one-time sign-in link (`NYXOS_NO_BROWSER=1 nyxos open`) for the allowed address. The profile is stored in the
+  new table `hosting_profile` (migration 0045); a Cloudflare tunnel token can be kept in the encrypted secret
+  store. „Nyx hilft“ opens Nyx with the filled-in form (never the secrets); Nyx may read, check and save the
+  form, never touch the secrets.
+
+### Changed
+
+- **"Compact context" moved** from the session header into the session info (Controls) – it now exists in one
+  place only and uses the context guard's delivery path.
+- Voice: the default German voice is now Thorsten (clear, Piper „high“), Jürgen is the second choice; the other
+  Thorsten variants (low, medium, emphatic) are no longer loaded or offered for import. The local voice pack
+  loads Thorsten „high“ (about 50 MB more).
+- **Settings, tidier:** „Connections“ and „Telegram“ are own subpages (under „Operation & access“ and
+  „Notifications“), as are „How written?“ and „Nyx checks & writes“. Search and ⌘K jump to the exact spot and open
+  collapsed blocks on the way; names rank before keywords. The notification history shows 5 entries first („Show
+  older“), rare occasions sit under „More occasions“, the info lines of the way cards are collapsed. Touch targets
+  ≥ 44 px, select lists thumb-high in Safari.
+- **Phone:** the session chat gives most of the height to the conversation (one-line header, actions in „⋯“,
+  one-line composer, collapsible queue); the agent bar hides while the keyboard is open; touch targets ≥ 44 px
+  outside Settings too.
+- Models show readable names instead of IDs (the ID stays in the tooltip). The server page at 1024 px no longer
+  stretches cards.
+
+- Old settings links (`/settings#push`, `#verbindungen`, `#zugaenge`, `#telegram`, `/einstellungen/haiku`,
+  `/einstellungen/ideen-links`, `/einstellungen/nyx#stimme` …) redirect to the new subpages; the status line
+  links to Settings → Operation & access.
+- HTML pages now send `frame-src 'self'` plus the origin of the support service in their
+  `Content-Security-Policy`.
+- Database: migration `0042_support` adds the tables `support_outbox` and `support_settings` (additive).
+- Database: migration `0044_session_agent_marks` adds the table `session_agent_marks` and a partial index
+  `session_events_agent_idx` on sub-agent events (additive). In server mode with a large `session_events` table,
+  create the index first with `CREATE INDEX CONCURRENTLY` (the migration line is then a no-op).
+- Bridge: the transcript parser attaches `usage`/`msgId`/`model` to the first event of every sub-agent answer
+  (live tokens per agent) and the final report of `SubagentHandback` as text; the `SubagentStop` hook passes the
+  agent id as `subagentId`. Update the bridge to see live tokens; until then they come from the archive (delayed).
+- The former panels „Push“ and „When I'm away“ are replaced by the notifications page; their old switches still
+  work (a kind switched off stays *Never*). Notification names no longer show the raw prompt or „Session from …“,
+  channel names say „computer“/„phone“ instead of a device brand.
+
+### Fixed
+
+- The context guard no longer sends the same notice two or three times in the same second (ticker and ingest
+  raced; the mark is now claimed atomically before sending).
+- Sub-agents of a session (rows with `parent_id`, e.g. Codex workers) no longer trigger „waiting“, „done“ or
+  context-guard notifications or Telegram questions (setting, on by default).
+- A Nyx run that was given up while still queued (e.g. a notification sent on after 8 s) no longer starts later.
+- Quiet hours and the night window use your wall clock (the time zone set in NyxOS, else the computer's) instead of
+  the process time zone – in server mode the container runs in UTC and shifted them by one or two hours.
+- While you're away, usage warnings, crashes and approvals (without a Telegram card) reach the phone at once again
+  instead of waiting up to 15 minutes in the digest. A waiting session Telegram already asks about is no longer also
+  a digest line.
+- Sessions an agent starts in its own worktree (`…/.claude/worktrees/agent-<id>`) count as sub-agents.
+- Nyx can no longer filter out approvals and crashes (like urgent ones, while „important always gets through“ is on).
+
+### Security
+
+- Nyx-written notifications with a link or address that is not in the session data fall back to the template text
+  (session texts are foreign input).
+- The health check of „Operation & access“ connects only to the address it checked (pinned DNS lookup, closes DNS
+  rebinding).
+
 ## [0.1.0] - 2026-09-27
 
 First public release.
@@ -122,5 +268,5 @@ First public release.
   cache. `scripts/check-clean.sh` checks for secret-shaped strings; personal words go in the git-ignored
   `.check-clean.local`.
 
-[Unreleased]: https://github.com/OWNER/nyxos/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/OWNER/nyxos/releases/tag/v0.1.0
+[Unreleased]: https://github.com/VariadAgency/NyxOs---Agentic-OS/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/VariadAgency/NyxOs---Agentic-OS/releases/tag/v0.1.0

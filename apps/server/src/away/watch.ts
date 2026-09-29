@@ -13,8 +13,8 @@
 //   Nachtlauf fertig = Nachtlauf mit Endzeit nach dem Start
 //   Inbox-Frage      = offene Frage aus der Entscheidungs-Inbox (ohne Nyx' Sortier-Vorschläge), nach dem Start angelegt
 //   Freigabe         = offene Freigabe-Anfrage, nach dem Start angelegt
-import { GUARD_RULE_LABELS, sessionLabel, t } from "@nyxos/shared";
-import { and, eq, gt, gte, inArray, isNotNull, notInArray, sql } from "drizzle-orm";
+import { AGENT_WORKTREE_LIKE, GUARD_RULE_LABELS, sessionLabel, t } from "@nyxos/shared";
+import { and, eq, gt, gte, inArray, isNotNull, isNull, notInArray, notLike, or, sql } from "drizzle-orm";
 import type { Db } from "../db/client.js";
 import { approvals, buildRuns, entries, inboxItems, nightRuns, sessions } from "../db/schema.js";
 import { countedSession } from "../db/visible.js";
@@ -84,7 +84,7 @@ export class AwayWatcher {
   }
 
   /** Neue Ereignisse seit dem letzten Aufruf + alle gerade offenen Fragen. */
-  async scan(opts: { waitingAfterSeconds: number }): Promise<{ events: AwayEvent[]; openQuestions: AwayQuestion[] }> {
+  async scan(opts: { waitingAfterSeconds: number; skipSubAgents?: boolean }): Promise<{ events: AwayEvent[]; openQuestions: AwayQuestion[] }> {
     if (!this.primed) await this.prime();
     const now = this.now();
     const lookback = new Date(now - LOOKBACK_MS).toISOString();
@@ -120,7 +120,16 @@ export class AwayWatcher {
       if (!finished || !(prev === true || (prev === undefined && r.afterStart === true))) continue;
       const key = `s:${r.id}:${String(r.turnAt)}`;
       if (!this.remember(key)) continue;
-      events.push({ key, kind: "session_done", label: t("Session „{name}“ fertig", { name: sessionLabel({ ...r, baustelleLabel: r.categoryBaustelleLabel }) }), path: sessionPath(r), important: false });
+      events.push({
+        key,
+        kind: "session_done",
+        label: t("Session „{name}“ fertig", { name: sessionLabel({ ...r, baustelleLabel: r.categoryBaustelleLabel }) }),
+        path: sessionPath(r),
+        important: false,
+        sessionKey: r.id,
+        what: t("ist fertig"),
+        occurredAt: r.turnAt ? String(r.turnAt) : null,
+      });
     }
     this.turnOpen = nextOpen;
 
@@ -205,6 +214,10 @@ export class AwayWatcher {
           eq(sessions.screenWaiting, true),
           gte(this.turnAt, lookback),
           countedSession,
+          // Sub-agents (Codex workers "Locke: …") don't ask via Telegram (setting, on by default).
+          opts.skipSubAgents ? isNull(sessions.parentId) : undefined,
+          // Likewise sessions an agent started in its own worktree (see `isAgentWorktree`).
+          opts.skipSubAgents ? or(isNull(sessions.cwd), notLike(sessions.cwd, AGENT_WORKTREE_LIKE)) : undefined,
         ),
       )
       .limit(20);

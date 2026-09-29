@@ -60,7 +60,7 @@ export function TempFilterChip({ hide, onChange, count, className }: TempFilterC
       onClick={() => onChange(!hide)}
       className={cn(
         className,
-        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-caption transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-a-acc",
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-caption pointer-coarse:min-h-11 transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-a-acc",
         !hide ? "border-a-temp/50 bg-a-temp/15 text-a-temp" : "border-a-line bg-a-p text-a-mut hover:border-a-temp/40 hover:text-a-ink",
       )}
     >

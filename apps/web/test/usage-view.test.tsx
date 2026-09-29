@@ -42,9 +42,11 @@ describe("UsageView", () => {
       </MemoryRouter>,
     );
     expect(await screen.findByText("Nutzung")).toBeInTheDocument();
-    expect(await screen.findByText("claude-opus-5")).toBeInTheDocument();
+    // Readable name, the id is in the tooltip.
+    const name = await screen.findByTitle("claude-opus-5");
+    expect(name).toHaveTextContent("Opus 5");
 
-    fireEvent.click(screen.getByText("claude-opus-5"));
+    fireEvent.click(name);
     expect(await screen.findByTestId("usage-detail")).toBeInTheDocument();
   });
 

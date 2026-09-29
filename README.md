@@ -9,8 +9,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/OWNER/nyxos/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/OWNER/nyxos/actions/workflows/ci.yml/badge.svg"></a>
-  <a href="https://github.com/OWNER/nyxos/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/OWNER/nyxos"></a>
+  <a href="https://github.com/VariadAgency/NyxOs---Agentic-OS/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/VariadAgency/NyxOs---Agentic-OS/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://github.com/VariadAgency/NyxOs---Agentic-OS/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/VariadAgency/NyxOs---Agentic-OS"></a>
   <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-blue"></a>
   <img alt="macOS and Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey">
 </p>
@@ -27,7 +27,7 @@ operate the interface for you, while push, merge, deploy and delete always stay 
 ## Quick start
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OWNER/nyxos/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/VariadAgency/NyxOs---Agentic-OS/main/install.sh | bash
 ```
 
 That's all. About a minute later your browser opens and a five-step setup guides you through the rest — no

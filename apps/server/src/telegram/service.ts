@@ -140,7 +140,7 @@ type Reg = { kind: "cwd"; cwd: string; label: string } | { kind: "session"; key:
 const PLAIN_PAIRING_CODE = new RegExp(`^[${TELEGRAM_PAIRING_ALPHABET}]{${TELEGRAM_PAIRING_LENGTH}}$`, "i");
 const UNPAIRED_HINT_EVERY_MS = 10 * 60_000;
 export const UNPAIRED_HINT =
-  "Hallo! Ich bin noch mit niemandem gekoppelt und darf deshalb noch nicht antworten.\n\nSo geht's: NyxOS öffnen → Einstellungen → Telegram → „Kopplungs-Code erzeugen“ – dann den Link antippen oder mir den Code hier schicken.";
+  "Hallo! Ich bin noch mit niemandem gekoppelt und darf deshalb noch nicht antworten.\n\nSo geht's: NyxOS öffnen → Einstellungen → Mitteilungen → Telegram → „Kopplungs-Code erzeugen“ – dann den Link antippen oder mir den Code hier schicken.";
 
 /** Zeitlimit für den ersten direkten getMe-Aufruf (danach übernimmt grammYs Polling). */
 export const PREFLIGHT_TIMEOUT_MS = 15_000;
@@ -641,8 +641,8 @@ export class TelegramService {
     if (r.record) await patchTelegramState(this.db, r.record);
     this.log("telegram-kopplung-abgelehnt", { reason: r.reason });
     // Nur antworten, wenn gerade wirklich gekoppelt werden soll (sonst verrät der Bot sich Fremden nicht).
-    if (r.reason === "wrong") await this.say(chatId, r.record?.pairLockedUntil ? t("Zu viele falsche Codes. Die Kopplung ist für eine Stunde gesperrt.") : t("Der Code stimmt nicht. Bitte in NyxOS → Einstellungen → Telegram nachsehen."));
-    else if (r.reason === "expired") await this.say(chatId, t("Der Code ist abgelaufen. In NyxOS → Einstellungen → Telegram einen neuen erzeugen."));
+    if (r.reason === "wrong") await this.say(chatId, r.record?.pairLockedUntil ? t("Zu viele falsche Codes. Die Kopplung ist für eine Stunde gesperrt.") : t("Der Code stimmt nicht. Bitte in NyxOS → Einstellungen → Mitteilungen → Telegram nachsehen."));
+    else if (r.reason === "expired") await this.say(chatId, t("Der Code ist abgelaufen. In NyxOS → Einstellungen → Mitteilungen → Telegram einen neuen erzeugen."));
   }
 
   // ───────────────────────────── Befehle ─────────────────────────────

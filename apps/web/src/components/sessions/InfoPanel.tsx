@@ -5,6 +5,7 @@ import { formatDateTime, duration, shortenPath } from "../../lib/format";
 import { useSessionContextThresholds } from "../../features/context-guard/api";
 import { ContextRing } from "./ContextRing";
 import { ChangedFiles } from "../../features/session-panels/ChangedFiles";
+import { readableModel } from "../../lib/modelName";
 
 function reasonSentence(detail: SessionDetail): string {
   const last = detail.session.reason.at(-1);
@@ -30,7 +31,7 @@ export function InfoPanel({ detail }: { detail: SessionDetail }) {
       <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-caption">
         <dt className="text-a-mut">{t("Modelle")}</dt>
         <dd className="min-w-0 truncate" title={session.models.join(", ") || undefined}>
-          {session.models.length ? session.models.join(", ") : "–"}
+          {session.models.length ? session.models.map(readableModel).join(", ") : "–"}
         </dd>
         <dt className="text-a-mut">{t("Tokens")}</dt>
         <dd className="font-mono">{numberFmt.format(session.tokensTotal)}</dd>

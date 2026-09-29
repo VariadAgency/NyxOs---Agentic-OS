@@ -238,15 +238,20 @@ function ReplySettings({ status }: { status: TelegramStatus }) {
   );
 }
 
-export function TelegramSettingsPanel() {
+/** `bare`: on its own subpage `/settings/telegram` – title and explanation already stand in the page header. */
+export function TelegramSettingsPanel({ bare = false }: { bare?: boolean } = {}) {
   const { data: status, isLoading, isError, refetch } = useTelegramStatus();
 
   return (
-    <section id="telegram" className="grid gap-2" aria-labelledby="telegram-settings-title">
-      <SectionTitle>
-        <span id="telegram-settings-title">Telegram</span>
-      </SectionTitle>
-      <p className="text-callout text-a-mut">{t("Mit Nyx vom Handy aus sprechen: schreiben, Sprachnachrichten schicken, Sessions wählen und starten, /compact, Freigaben per Knopf.")}</p>
+    <section className="grid gap-2" aria-labelledby={bare ? undefined : "telegram-settings-title"} aria-label={bare ? "Telegram" : undefined}>
+      {!bare && (
+        <>
+          <SectionTitle>
+            <span id="telegram-settings-title">Telegram</span>
+          </SectionTitle>
+          <p className="text-callout text-a-mut">{t("Mit Nyx vom Handy aus sprechen: schreiben, Sprachnachrichten schicken, Sessions wählen und starten, /compact, Freigaben per Knopf.")}</p>
+        </>
+      )}
       {isLoading && <div className="font-body text-callout text-a-mut">{t("Lädt …")}</div>}
       {isError && (
         <button type="button" onClick={() => void refetch()} className={cn(BTN_SOFT, "w-fit")}>

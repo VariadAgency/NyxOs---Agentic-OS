@@ -1,7 +1,7 @@
-// Abrufe für den Session-Chat (Sperr-Zustand, Senden), „Kontext komprimieren“ und
+// Abrufe für den Session-Chat (Sperr-Zustand, Senden) und
 // „Session zusammenfassen & prüfen“. Schreibende Wege über `authFetch` (Anmelde-Token, „Bitte
 // anmelden“-Dialog bei abgelaufener Anmeldung, s. features/terminal/authClient.ts).
-import { t, type ChatAvailability, type ChatSendResult, type SessionAudit, type SessionAuditView, type SessionDeliveryView } from "@nyxos/shared";
+import { t, type ChatAvailability, type ChatSendResult, type NyxSessionSummary, type NyxSessionSummaryView, type SessionAudit, type SessionAuditView, type SessionDeliveryView } from "@nyxos/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { authFetch } from "../terminal/authClient";
 
@@ -79,15 +79,6 @@ export function useCancelDelivery(sessionId: string) {
   });
 }
 
-/** „Kontext komprimieren“ über den Weg des Kontext-Wächters — nur, wenn die Session wartet. */
-export function useCompactWhenWaiting(sessionId: string) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: () => post<{ sent: boolean; reason?: string }>(`/api/context-guard/sessions/${enc(sessionId)}/compact-now`, { onlyWhenWaiting: true }),
-    onSettled: () => void qc.invalidateQueries({ queryKey: ["context-guard", "session", sessionId] }),
-  });
-}
-
 export function useSessionAudits(sessionId: string) {
   return useQuery({
     queryKey: auditsKey(sessionId),
@@ -98,6 +89,32 @@ export function useSessionAudits(sessionId: string) {
     },
     // Solange eine Prüfung läuft, öfter nachsehen (zusätzlich zum `/live`-Signal).
     refetchInterval: (q) => (q.state.data?.audits[0]?.status === "running" ? 3_000 : 60_000),
+  });
+}
+
+/** „Nyx fasst zusammen“ – letzte Zusammenfassung + neue Nachrichten seitdem. */
+export const summaryKey = (sessionId: string) => ["session-summary", sessionId] as const;
+export function useSessionSummary(sessionId: string) {
+  return useQuery({
+    queryKey: summaryKey(sessionId),
+    queryFn: async (): Promise<NyxSessionSummaryView> => {
+      const r = await getJson<Partial<NyxSessionSummaryView>>(`/api/sessions/${enc(sessionId)}/summary`);
+      if (!r?.engine || r.summary === undefined) throw new Error("Unerwartete Antwort");
+      return { engine: r.engine, summary: r.summary, newMessages: r.newMessages ?? 0 };
+    },
+    // Während Nyx schreibt, strömt der Text – dann öfter nachsehen (zusätzlich zum `/live`-Signal).
+    refetchInterval: (q) => (q.state.data?.summary?.status === "running" ? 1_500 : 60_000),
+  });
+}
+
+export function useCreateSummary(sessionId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => post<NyxSessionSummary>(`/api/sessions/${enc(sessionId)}/summary`, {}),
+    onSuccess: (summary) => {
+      qc.setQueryData<NyxSessionSummaryView>(summaryKey(sessionId), (prev) => (prev ? { ...prev, summary, newMessages: 0 } : prev));
+    },
+    onSettled: () => void qc.invalidateQueries({ queryKey: summaryKey(sessionId) }),
   });
 }
 

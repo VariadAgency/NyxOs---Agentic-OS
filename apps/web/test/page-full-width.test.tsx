@@ -9,8 +9,9 @@ import { PageShell } from "../src/components/PageShell";
 const PAGE_FILES = [
   "components/PageShell.tsx",
   "features/inbox/InboxView.tsx",
-  "features/settings/Settings.tsx",
-  "features/settings/nyx/NyxSettingsPage.tsx",
+  "features/settings/SettingsOverview.tsx",
+  "features/settings/SettingsSubpage.tsx",
+  "features/settings/nyx/NyxProfilePanels.tsx",
   "features/idealink/IdeaLinksPanel.tsx",
   "features/haiku/HaikuSettingsPanel.tsx",
   "features/haiku/Briefing.tsx",

@@ -44,7 +44,7 @@ function FirstScan({ scan }: { scan: GitDashboard["scan"] }) {
           {t("Den Git-Stand liest die Brücke auf deinem Rechner.")} {scan.bridge.reason ? `${t("Grund: {reason}.", { reason: scan.bridge.reason })} ` : ""}
           {t("Sobald sie wieder läuft, erscheinen hier Commits, Zweige und Worktrees — ganz von selbst.")}
         </p>
-        <Link to={CONNECTIONS_HREF} className="justify-self-start rounded-lg border border-a-acc/40 bg-a-acc/10 px-3 py-1.5 text-callout text-a-acc hover:bg-a-acc/15">
+        <Link to={CONNECTIONS_HREF} className="justify-self-start rounded-lg border border-a-acc/40 bg-a-acc/10 px-3 py-1.5 text-callout text-a-acc hover:bg-a-acc/15 pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center">
           {t("Verbindungen prüfen")}
         </Link>
       </div>
@@ -192,10 +192,10 @@ export function Git() {
           <h2 className="font-display text-title2 font-semibold text-a-ink">{t("Der Git-Stand ist gerade nicht erreichbar.")}</h2>
           <p className="text-callout text-a-mut">{t("Der Server antwortet nicht. Meist ist nur die Verbindung kurz weg.")}</p>
           <div className="flex gap-2">
-            <button type="button" onClick={() => void refetch()} className="rounded-lg border border-a-acc/40 bg-a-acc/10 px-3 py-1.5 text-callout text-a-acc hover:bg-a-acc/15">
+            <button type="button" onClick={() => void refetch()} className="rounded-lg border border-a-acc/40 bg-a-acc/10 px-3 py-1.5 text-callout text-a-acc hover:bg-a-acc/15 pointer-coarse:min-h-11">
               {t("Erneut laden")}
             </button>
-            <Link to={CONNECTIONS_HREF} className="rounded-lg border border-a-line px-3 py-1.5 text-callout text-a-mut hover:bg-a-p2">
+            <Link to={CONNECTIONS_HREF} className="rounded-lg border border-a-line px-3 py-1.5 text-callout text-a-mut hover:bg-a-p2 pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center">
               {t("Verbindungen prüfen")}
             </Link>
           </div>

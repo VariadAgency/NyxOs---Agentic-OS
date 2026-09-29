@@ -27,9 +27,7 @@ const en: Record<string, string> = {
   "Ideen-Links": "Idea links",
   "Brotkrümel": "Breadcrumb",
   "Weitere Ebenen": "More levels",
-  "Ideen-Links verwalten": "Manage idea links",
   "Nyx-Einstellungen": "Nyx settings",
-  "Nyx: Persönlichkeit und Profil": "Nyx: personality and profile",
   "Vollbild": "Full screen",
   "Neue Session starten": "Start a new session",
   "Zum Durchsuchen bitte anmelden": "Please sign in to search",
@@ -49,6 +47,7 @@ const en: Record<string, string> = {
   "Die Suche klappt gerade nicht – Enter versucht es noch einmal": "Search isn't working right now – press Enter to try again",
   "Suche läuft …": "Searching …",
   "Keine Treffer für „{q}“ – frag doch Nyx": "No results for “{q}” – why not ask Nyx",
+  "In den Inhalten nichts zu „{q}“ – frag doch Nyx": "Nothing about “{q}” in the content – why not ask Nyx",
   "Nyx fragen: „{q}“": "Ask Nyx: “{q}”",
   "Angemeldet": "Signed in",
   "Anmeldung gerade nicht prüfbar": "Can't check sign-in right now",
@@ -336,6 +335,11 @@ const en: Record<string, string> = {
   "Brücke/Tunnel weg – die Brücke baut ihn normalerweise von selbst wieder auf.": "Bridge/tunnel down – the bridge usually rebuilds it on its own.",
   "Keine Antwort über das Netz.": "No answer over the network.",
   "Noch keine Nutzung in diesem Zeitraum.": "No usage in this period yet.",
+  // --- Settings overview + subpages, phone (bottom bar, terminal keys)
+  "Schnellzugriff": "Quick access",
+  "Mehr": "More",
+  "Suchen und Befehle": "Search and commands",
+  "Unerwartete Antwort vom Server": "Unexpected answer from the server",
 };
 
 export default en;

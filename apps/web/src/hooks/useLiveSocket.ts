@@ -22,7 +22,7 @@ const WATCHDOG_MS = 15_000;
  * bzw. aus `routes/entries.ts` `notify()` (`hub.broadcast({ type: "entry", entryId })`). */
 interface LiveMessage {
   type?: string;
-  session?: { id?: string };
+  session?: { id?: string; parentId?: string | null };
   entryId?: number;
   /** `{ type: "context_guard", sessionId }` — Hinweis/Erzwingen-Zustand einer Session hat sich geändert. */
   sessionId?: string;
@@ -118,7 +118,11 @@ export function useLiveSocket(): void {
             return;
           }
           if (msg.type === "session" && typeof msg.session?.id === "string") sessionId = msg.session.id;
+          // A signal of a child session (Codex teammate) also concerns the parent session (agents bar in the chat).
+          if (msg.type === "session" && typeof msg.session?.parentId === "string") pendingSessionIds.add(msg.session.parentId);
           if (msg.type === "bridge") void queryClient.invalidateQueries({ queryKey: ["terminal-status"] }); // Brücke an/aus
+          // Focus changed (other window, Nyx or expired) → reload the button and the settings row.
+          if (msg.type === "focus") void queryClient.invalidateQueries({ queryKey: ["focus"] }, { cancelRefetch: false });
           // Telegram-Zustand (verbunden, gekoppelt, Ziel) hat sich geändert.
           if (msg.type === "telegram") void queryClient.invalidateQueries({ queryKey: ["telegram", "status"] }, { cancelRefetch: false });
           // Skill-Bibliothek (neuer Vorschlag, neuer Stand, Auftrag gestartet) → Kacheln/Detail neu laden.
@@ -136,6 +140,10 @@ export function useLiveSocket(): void {
           // „Session zusammenfassen & prüfen“ fertig/gestartet → Ergebnis neu laden.
           if (msg.type === "session_audit" && typeof msg.sessionId === "string") {
             void queryClient.invalidateQueries({ queryKey: ["session-audits", msg.sessionId] }, { cancelRefetch: false });
+          }
+          // „Nyx fasst zusammen“ – Text strömt / fertig / Fehler → Karte oben im Chat neu laden.
+          if (msg.type === "session_summary" && typeof msg.sessionId === "string") {
+            void queryClient.invalidateQueries({ queryKey: ["session-summary", msg.sessionId] }, { cancelRefetch: false });
           }
         } catch {
           // unbekannte/kaputte Nachricht — trotzdem bündeln, nur ohne gezielte ID

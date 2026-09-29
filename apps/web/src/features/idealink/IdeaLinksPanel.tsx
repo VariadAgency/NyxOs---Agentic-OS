@@ -33,7 +33,8 @@ function dateOnly(iso: string): string {
   return new Date(iso).toLocaleDateString(locale(), { day: "numeric", month: "short", year: "numeric", timeZone: timeZone() });
 }
 
-export function IdeaLinksPanel() {
+/** `embedded` = als Unterseite Einstellungen → Ideen-Links (Titel und Erklärung macht die Unterseite). */
+export function IdeaLinksPanel({ embedded = false }: { embedded?: boolean } = {}) {
   const qc = useQueryClient();
   const links = useQuery({ queryKey: ["idealinks"], queryFn: fetchIdeaLinks });
   const [name, setName] = useState("");
@@ -51,12 +52,16 @@ export function IdeaLinksPanel() {
   });
 
   return (
-    <div className="grid w-full min-w-0 content-start gap-4 p-4 md:p-6" data-nyx-risk="">
+    <div className={cn("grid w-full min-w-0 content-start gap-4", !embedded && "p-4 md:p-6")} data-nyx-risk="">
       <header className="grid gap-1">
-        <h1 className="font-display text-title2 font-bold text-a-ink">{t("Ideen-Links")}</h1>
-        <p className="text-callout leading-relaxed text-a-mut">
-          {t("Ein Link pro Person: Wer ihn hat, kann Nyx eine Idee erzählen. Nyx prüft, ob es sie schon gibt, und legt sonst eine neue Idee im Eingang an. Mehr sieht die Person nicht.")}
-        </p>
+        {!embedded && (
+          <>
+            <h1 className="font-display text-title2 font-bold text-a-ink">{t("Ideen-Links")}</h1>
+            <p className="text-callout leading-relaxed text-a-mut">
+              {t("Ein Link pro Person: Wer ihn hat, kann Nyx eine Idee erzählen. Nyx prüft, ob es sie schon gibt, und legt sonst eine neue Idee im Eingang an. Mehr sieht die Person nicht.")}
+            </p>
+          </>
+        )}
         <p className="w-fit rounded-md border border-a-wait/30 bg-a-wait/10 px-2 py-1 text-caption text-a-wait">
           {t("Der Link funktioniert im Tailnet (Handy mit Tailscale). Öffentlich erreichbar ist er erst, wenn du NyxOS öffentlich freigibst.")}
         </p>

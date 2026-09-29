@@ -46,7 +46,7 @@ function CopyCommand({ command }: { command: string }) {
             setTimeout(() => setCopied(false), 1500);
           });
         }}
-        className="shrink-0 rounded-md border border-a-line px-2 py-1 text-caption text-a-ink transition-colors duration-150 hover:bg-a-p2"
+        className="shrink-0 rounded-md border border-a-line px-2 py-1 text-caption text-a-ink transition-colors duration-150 hover:bg-a-p2 pointer-coarse:min-h-11"
       >
         {copied ? t("Kopiert") : t("Kopieren")}
       </button>
@@ -199,8 +199,12 @@ export function Server() {
           {data.docker.available ? (
             <ContainerSection data={data} />
           ) : (
+            // Text in its own paragraph – as loose text next to a <span> the card had no child reaching the bottom
+            // (two lines at 1024 px → the layout check reported a "stretched card").
             <Card className="text-callout text-a-mut">
-              <span className="text-a-ink">{data.docker.reason}</span> {t("Den Schritt dazu siehst du oben unter „Fehlt noch“.")}
+              <p>
+                <span className="text-a-ink">{data.docker.reason}</span> {t("Den Schritt dazu siehst du oben unter „Fehlt noch“.")}
+              </p>
             </Card>
           )}
         </section>

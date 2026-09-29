@@ -3,9 +3,13 @@
 import { markdownToText, type GraphNode, type GraphNodeDetail } from "@nyxos/shared";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { NodeCard } from "../src/features/brain/NodeCard";
+
+// the card now has the Nyx button (needs the query client, like in the app).
+const qc = new QueryClient();
 
 vi.mock("../src/features/brain/GraphCanvas", () => ({
   GraphCanvas: (p: { graph: { nodes: GraphNode[] }; onSelect(n: GraphNode | null): void }) => (
@@ -107,9 +111,9 @@ describe("NodeCard zeigt Auszüge als sicheren Text", () => {
     };
     vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(new Response(JSON.stringify(detail), { status: 200 }))));
     render(
-      <MemoryRouter>
+      <QueryClientProvider client={qc}><MemoryRouter>
         <NodeCard node={node} onClose={() => undefined} />
-      </MemoryRouter>,
+      </MemoryRouter></QueryClientProvider>,
     );
     const card = screen.getByTestId("node-card");
     await waitFor(() => expect(card).toHaveTextContent("Fertig: pnpm test grün"));
@@ -126,16 +130,16 @@ describe("Info-Karte im lokalen Graphen beim Session-Wechsel", () => {
   it("schließt, wenn der gewählte Punkt in der neuen Session nicht vorkommt; neue Session → keine alte Karte", async () => {
     vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>(() => undefined)));
     const { rerender } = render(
-      <MemoryRouter>
+      <QueryClientProvider client={qc}><MemoryRouter>
         <LocalGraph nodeId="a" />
-      </MemoryRouter>,
+      </MemoryRouter></QueryClientProvider>,
     );
     await userEvent.click(screen.getByRole("button", { name: "Punkt Session A" }));
     expect(screen.getByTestId("node-card")).toHaveAttribute("aria-label", "Info: Session A");
     rerender(
-      <MemoryRouter>
+      <QueryClientProvider client={qc}><MemoryRouter>
         <LocalGraph nodeId="b" />
-      </MemoryRouter>,
+      </MemoryRouter></QueryClientProvider>,
     );
     expect(screen.queryByTestId("node-card")).toBeNull();
   });
@@ -143,16 +147,16 @@ describe("Info-Karte im lokalen Graphen beim Session-Wechsel", () => {
   it("auch ein Punkt, den beide Sessions haben, gehört zur alten Ansicht: Karte schließt beim Wechsel", async () => {
     vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>(() => undefined)));
     const { rerender } = render(
-      <MemoryRouter>
+      <QueryClientProvider client={qc}><MemoryRouter>
         <LocalGraph nodeId="a" />
-      </MemoryRouter>,
+      </MemoryRouter></QueryClientProvider>,
     );
     await userEvent.click(screen.getByRole("button", { name: "Punkt Gemeinsam" }));
     expect(screen.getByTestId("node-card")).toBeInTheDocument();
     rerender(
-      <MemoryRouter>
+      <QueryClientProvider client={qc}><MemoryRouter>
         <LocalGraph nodeId="b" />
-      </MemoryRouter>,
+      </MemoryRouter></QueryClientProvider>,
     );
     expect(screen.queryByTestId("node-card")).toBeNull();
     // in der neuen Session wieder anklickbar

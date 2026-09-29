@@ -93,7 +93,7 @@ describe("Haiku-Panel zeigt den Motor-Zustand vor dem Schreiben", () => {
     stub("off");
     const { panel } = await openPanel();
     await waitFor(() => expect(within(panel).getByRole("textbox", { name: "Frage an Nyx" })).toBeDisabled());
-    expect(within(panel).getByRole("link", { name: "In Einstellungen einschalten" })).toHaveAttribute("href", "/einstellungen/haiku");
+    expect(within(panel).getByRole("link", { name: "In Einstellungen einschalten" })).toHaveAttribute("href", "/einstellungen/nyx/motor");
   });
 
   it("Fehler: Grund in einfachen Worten + „Erneut prüfen“, keine Technik-Meldung", async () => {

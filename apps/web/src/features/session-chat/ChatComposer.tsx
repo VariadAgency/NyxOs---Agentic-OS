@@ -4,6 +4,7 @@
 // den Knopf „In der NyxOS übernehmen“ (`takeover`).
 import { t, type ChatAvailability } from "@nyxos/shared";
 import { type ClipboardEvent, type KeyboardEvent, type ReactNode, useLayoutEffect, useRef } from "react";
+import { PHONE_QUERY, useMediaQuery, useTouch } from "../../hooks/useMediaQuery";
 import { cn } from "../../lib/cn";
 import { formatSize, type DraftAttachment } from "./attachments";
 import { IconClose, IconPaperclip, IconSend } from "./icons";
@@ -35,6 +36,11 @@ interface ChatComposerProps {
 export function ChatComposer({ who, availability, availabilityError, text, onText, drafts, onAddFiles, onRemove, onSend, sending, error, takeover, assistOpen, onToggleAssist }: ChatComposerProps) {
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
+  // Auf dem Handy gibt es kein Shift+Enter – dort macht Enter eine neue Zeile, gesendet wird per Knopf.
+  const touch = useTouch();
+  // On the phone the input is one line (paper clip · field · ✦ · send) – hints sit in the field instead of
+  // above/below it, so the history gets the room.
+  const phone = useMediaQuery(PHONE_QUERY);
   const locked = !availability?.canSend;
   const canSubmit = !locked && !sending && (text.trim().length > 0 || drafts.length > 0);
 
@@ -42,12 +48,17 @@ export function ChatComposer({ who, availability, availabilityError, text, onTex
   useLayoutEffect(() => {
     const el = inputRef.current;
     if (!el) return;
+    // Empty stays one line – a long placeholder (e.g. "… is working") does not make it grow.
+    if (text === "") {
+      el.style.height = "";
+      return;
+    }
     el.style.height = "auto";
     el.style.height = `${Math.min(el.scrollHeight, MAX_INPUT_PX)}px`;
   }, [text]);
 
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key !== "Enter" || e.shiftKey || e.altKey || e.nativeEvent.isComposing) return;
+    if (touch || e.key !== "Enter" || e.shiftKey || e.altKey || e.nativeEvent.isComposing) return;
     e.preventDefault();
     if (canSubmit) onSend();
   };
@@ -64,17 +75,24 @@ export function ChatComposer({ who, availability, availabilityError, text, onTex
   const loading = !availability && !availabilityError;
   const lockedMessage = availabilityError ? t("Ich kann gerade nicht prüfen, ob die Session bereit ist. Einen Moment …") : availability?.message;
   // Beim Laden kein falscher Grund; gesperrt steht der echte Grund auch im Feld.
-  const placeholder = loading ? t("Einen Moment …") : locked ? (lockedMessage ?? t("Schreiben geht gerade nicht")) : t("Nachricht an {who} …", { who });
+  const busyNow = !locked && !!availability?.busy;
+  const placeholder = loading
+    ? t("Einen Moment …")
+    : locked
+      ? (lockedMessage ?? t("Schreiben geht gerade nicht"))
+      : busyNow && phone
+        ? t("{who} arbeitet – schreib ruhig", { who })
+        : t("Nachricht an {who} …", { who });
 
   return (
-    <div className="shrink-0 border-t border-a-line bg-a-p px-3 pt-2.5 pb-2" data-testid="chat-composer">
+    <div className="shrink-0 border-t border-a-line bg-a-p px-3 pt-2.5 pb-2 max-md:px-2 max-md:py-1.5" data-testid="chat-composer">
       {locked && lockedMessage && (
         <div data-testid="chat-locked" className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-md border border-a-wait/30 bg-a-wait/10 px-3 py-2 text-caption text-a-ink">
           <span className="min-w-0 flex-1">{lockedMessage}</span>
           {takeover}
         </div>
       )}
-      {!locked && availability?.busy && (
+      {busyNow && !phone && (
         <p className="mb-1.5 text-caption text-a-wait">
           {t("{who} arbeitet gerade – deine Nachricht kommt in die Warteschlange und wird nach dem aktuellen Schritt gelesen.", { who })}
         </p>
@@ -91,7 +109,7 @@ export function ChatComposer({ who, availability, availabilityError, text, onTex
               )}
               <span className="min-w-0 truncate text-a-ink">{d.name}</span>
               <span className="shrink-0 font-mono text-label text-a-mut">{formatSize(d.size)}</span>
-              <button type="button" onClick={() => onRemove(d.id)} aria-label={t("Anhang entfernen: {name}", { name: d.name })} className="grid h-5 w-5 shrink-0 place-items-center rounded text-a-mut hover:bg-a-p3 hover:text-a-ink">
+              <button type="button" onClick={() => onRemove(d.id)} aria-label={t("Anhang entfernen: {name}", { name: d.name })} className="cc-hit grid h-5 w-5 shrink-0 place-items-center rounded text-a-mut hover:bg-a-p3 hover:text-a-ink">
                 <IconClose size={12} />
               </button>
             </li>
@@ -101,7 +119,7 @@ export function ChatComposer({ who, availability, availabilityError, text, onTex
 
       <div
         className={cn(
-          "flex items-end gap-1.5 rounded-lg border bg-a-bg px-1.5 py-1.5 transition-colors",
+          "flex items-end gap-1.5 rounded-lg border bg-a-bg px-1.5 py-1.5 transition-colors max-md:gap-0.5 max-md:px-0.5 max-md:py-0.5",
           locked && !loading ? "border-a-line opacity-60" : locked ? "border-a-line" : "border-a-line focus-within:border-a-acc",
         )}
       >
@@ -111,7 +129,7 @@ export function ChatComposer({ who, availability, availabilityError, text, onTex
           disabled={locked}
           aria-label={t("Datei anhängen")}
           title={t("Datei oder Bild anhängen")}
-          className="grid h-(--a-ctl-h) w-(--a-ctl-h) shrink-0 place-items-center rounded-md text-a-mut hover:bg-a-p2 hover:text-a-ink disabled:pointer-events-none"
+          className="grid h-(--a-ctl-h) w-(--a-ctl-h) shrink-0 place-items-center rounded-md text-a-mut hover:bg-a-p2 hover:text-a-ink disabled:pointer-events-none max-md:w-11"
         >
           <IconPaperclip />
         </button>
@@ -136,35 +154,57 @@ export function ChatComposer({ who, availability, availabilityError, text, onTex
           onKeyDown={onKeyDown}
           onPaste={onPaste}
           aria-label={t("Nachricht an {who}", { who })}
+          enterKeyHint={touch ? "enter" : "send"}
           placeholder={placeholder}
-          className="cc-scroll min-h-(--a-ctl-h) flex-1 resize-none bg-transparent px-1 py-[6px] text-callout leading-[18px] text-a-ink placeholder:text-a-mut focus:outline-none disabled:cursor-not-allowed"
+          className="cc-scroll min-h-(--a-ctl-h) flex-1 resize-none bg-transparent px-1 py-[6px] max-md:py-[13px] text-callout leading-[18px] text-a-ink placeholder:text-a-mut placeholder:text-ellipsis placeholder:whitespace-nowrap focus:outline-none disabled:cursor-not-allowed"
         />
+        {phone && onToggleAssist && (
+          <button
+            type="button"
+            onClick={onToggleAssist}
+            aria-pressed={assistOpen}
+            aria-label={t("Prompt verbessern")}
+            title={t("Prompt verbessern")}
+            className={cn("grid h-11 w-11 shrink-0 place-items-center rounded-md text-callout transition", assistOpen ? "bg-a-acc/15 text-a-acc" : "text-a-mut hover:bg-a-p2 hover:text-a-ink")}
+          >
+            <span aria-hidden="true">✦</span>
+          </button>
+        )}
         <button
           type="button"
           onClick={onSend}
           disabled={!canSubmit}
           aria-label={t("Senden")}
-          className="inline-flex h-(--a-ctl-h) shrink-0 items-center gap-1.5 rounded-md border border-transparent bg-a-primary px-3 text-caption font-semibold text-a-on-primary transition hover:brightness-110 disabled:pointer-events-none disabled:opacity-35"
+          aria-busy={sending || undefined}
+          className="inline-flex h-(--a-ctl-h) shrink-0 items-center gap-1.5 rounded-md border border-transparent bg-a-primary px-3 text-caption font-semibold text-a-on-primary transition hover:brightness-110 disabled:pointer-events-none disabled:opacity-35 max-md:w-11 max-md:justify-center max-md:px-0"
         >
-          {sending ? t("Sende …") : t("Senden")}
-          <IconSend size={14} />
+          <span className="max-md:hidden">{sending ? t("Sende …") : t("Senden")}</span>
+          <IconSend size={phone ? 18 : 14} />
         </button>
       </div>
-      <div className="mt-1 flex items-center justify-between gap-3 text-label text-a-mut">
-        <span className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-          <span>{t("Enter senden · Shift+Enter neue Zeile · Dateien hineinziehen oder einfügen")}</span>
-          {onToggleAssist && (
-            <button type="button" onClick={onToggleAssist} aria-pressed={assistOpen} className={cn("rounded px-1.5 py-0.5 font-medium transition", assistOpen ? "bg-a-acc/15 text-a-acc" : "text-a-ink hover:bg-a-p2")}>
-              ✦ {t("Prompt verbessern")}
-            </button>
-          )}
-        </span>
-        {error && (
-          <span role="alert" className="text-right text-caption text-a-bad">
+      {phone ? (
+        error && (
+          <p role="alert" className="mt-1 text-caption text-a-bad">
             {error}
+          </p>
+        )
+      ) : (
+        <div className="mt-1 flex items-center justify-between gap-3 text-label text-a-mut">
+          <span className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+            <span>{touch ? t("Senden mit dem Knopf · Anhang über die Büroklammer") : t("Enter senden · Shift+Enter neue Zeile · Dateien hineinziehen oder einfügen")}</span>
+            {onToggleAssist && (
+              <button type="button" onClick={onToggleAssist} aria-pressed={assistOpen} className={cn("cc-hit rounded px-1.5 py-0.5 font-medium transition", assistOpen ? "bg-a-acc/15 text-a-acc" : "text-a-ink hover:bg-a-p2")}>
+                ✦ {t("Prompt verbessern")}
+              </button>
+            )}
           </span>
-        )}
-      </div>
+          {error && (
+            <span role="alert" className="text-right text-caption text-a-bad">
+              {error}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

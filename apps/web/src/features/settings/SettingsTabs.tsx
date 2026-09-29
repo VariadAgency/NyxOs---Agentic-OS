@@ -19,7 +19,7 @@ export function SettingsTabs() {
           to={tab.to}
           end
           className={({ isActive }) =>
-            cn("rounded-lg px-3.5 py-1.5 text-callout transition-colors duration-150", isActive ? "bg-a-p3 font-medium text-a-ink shadow-card" : "text-a-mut hover:text-a-ink")
+            cn("flex items-center rounded-lg px-3.5 py-1.5 text-callout transition-colors duration-150 max-md:min-h-11 max-md:px-5 pointer-coarse:min-h-11", isActive ? "bg-a-p3 font-medium text-a-ink shadow-card" : "text-a-mut hover:text-a-ink")
           }
         >
           {tab.label}
