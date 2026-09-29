@@ -124,7 +124,12 @@ else
   esac
   VERSION="${NYXOS_VERSION:-}"
   if [ -z "$VERSION" ]; then
-    VERSION="$(fetch_text "https://api.github.com/repos/$REPO/releases/latest" | grep -oE '"tag_name": *"v?[^"]+"' | head -n1 | sed -E 's/.*"v?([^"]+)"$/\1/')"
+    # First without the GitHub API (only 60 requests per hour and address without sign-in — shared addresses in
+    # offices, universities or mobile networks run out): the "latest" download link always points to the newest
+    # release, and its checksum file names the package together with its version. The API is the fallback.
+    # `|| true`: a failed lookup must reach the clear message below instead of ending the script via `set -e`.
+    VERSION="$(fetch_text "https://github.com/$REPO/releases/latest/download/SHA256SUMS" 2>/dev/null | grep -oE 'nyxos-[0-9][0-9A-Za-z.+-]*\.tar\.gz' | head -n1 | sed -E 's/^nyxos-(.*)\.tar\.gz$/\1/' || true)"
+    [ -n "$VERSION" ] || VERSION="$(fetch_text "https://api.github.com/repos/$REPO/releases/latest" 2>/dev/null | grep -oE '"tag_name": *"v?[^"]+"' | head -n1 | sed -E 's/.*"v?([^"]+)"$/\1/' || true)"
     [ -n "$VERSION" ] || fail "Neueste Version nicht gefunden (GitHub erreichbar?)." "Could not find the latest version (is GitHub reachable?)."
   fi
   case "$VERSION" in
