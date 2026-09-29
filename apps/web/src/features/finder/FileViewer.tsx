@@ -61,7 +61,7 @@ export function FileViewer({ root, rel, entry, siblings, onClose, onNavigate, on
   }, [close]);
 
   return (
-    <div role="dialog" aria-modal="true" aria-label={name} className="fixed inset-0 z-40 flex flex-col bg-a-bg/95 backdrop-blur-sm motion-safe:animate-[cc-tab-fade_150ms_ease-out]">
+    <div role="dialog" aria-modal="true" aria-label={name} className="fixed inset-0 z-40 flex flex-col bg-a-bg/95 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] backdrop-blur-sm motion-safe:animate-[cc-tab-fade_150ms_ease-out]">
       <header className="flex flex-wrap items-center gap-2 border-b border-a-line bg-a-p px-3 py-2">
         <button type="button" onClick={close} className={btn()}>
           ‹ {t("Zurück")}

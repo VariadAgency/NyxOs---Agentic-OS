@@ -293,6 +293,48 @@
       "when": 1790440160000,
       "tag": "0041_app_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1790440220000,
+      "tag": "0042_support",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1790440280000,
+      "tag": "0043_notification_rules",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1790440340000,
+      "tag": "0044_session_agent_marks",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1790440400000,
+      "tag": "0045_hosting_profile",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1790440460000,
+      "tag": "0046_session_summaries",
+      "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1790440520000,
+      "tag": "0048_focus_state",
+      "breakpoints": true
     }
   ]
 }

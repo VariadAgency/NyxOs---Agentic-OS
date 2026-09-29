@@ -275,6 +275,21 @@ export function ChatPanel({ sessionId, at }: ChatPanelProps) {
     prevItemsLengthRef.current = visibleItems.length;
   }, [visibleItems.length, transcript.isLoading]);
 
+  // When the history gets shorter (phone keyboard opens, queue expands) the last message stays in view –
+  // but only if the user was at the bottom anyway (otherwise nothing moves).
+  useEffect(() => {
+    const el = parentRef.current;
+    if (!el || typeof ResizeObserver !== "function") return;
+    let lastHeight = el.clientHeight;
+    const ro = new ResizeObserver(() => {
+      const h = el.clientHeight;
+      if (h !== lastHeight && isNearBottomRef.current) el.scrollTop = el.scrollHeight;
+      lastHeight = h;
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [transcript.isLoading]);
+
   // Lesestand merken (nur vorwärts, s. `markSeenUpTo`).
   useEffect(() => {
     if (seenId) writeLastSeen(sessionId, seenId);

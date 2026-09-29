@@ -28,11 +28,11 @@ export function TemporarySettingsPanel() {
   return (
     <section className="grid gap-2" aria-labelledby="temp-settings-title">
       <SectionTitle>
-        <span id="temp-settings-title">{t("Temporäre Chats und Sessions")}</span>
+        <span id="temp-settings-title">{t("Wegwerf-Chats")}</span>
       </SectionTitle>
       <p className="text-callout text-a-mut">
         {t(
-          "Mit ⏳ markierte Einträge verschwinden nach dieser Zeit ohne Aktivität: Sessions wandern ins Archiv (die Verläufe bleiben erhalten, auf deinem Rechner wird nichts gelöscht), Nyx-Fäden werden gelöscht. Test-Sessions der Probe und Nyx-Selbsttests von NyxOS werden automatisch markiert. „Behalten“ (Reiter Info einer Session) oder „Zurückholen“ (unten) macht sie wieder zu normalen Sessions.",
+          "Mit ⏳ markierte („temporäre“) Sessions und Nyx-Fäden verschwinden nach dieser Zeit ohne Aktivität. Sessions wandern ins Archiv – die Verläufe bleiben, auf deinem Rechner wird nichts gelöscht. „Behalten“ (Reiter Info einer Session) oder „Zurückholen“ (unten) macht sie wieder normal.",
         )}
       </p>
       <form

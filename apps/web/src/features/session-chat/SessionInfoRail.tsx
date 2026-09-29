@@ -9,6 +9,7 @@ import { cn } from "../../lib/cn";
 import { useTooltip } from "../../components/ui/Tooltip";
 import { currentModel, shortModel } from "./model";
 import { useSessionAudits } from "./api";
+import { SummaryButton } from "./SessionSummary";
 import { IconAgents, IconAudit, IconChip, IconClock, IconFiles, IconPanelOpen, IconTokens, IconWrench } from "./icons";
 
 const COLLAPSE_KEY = "nyxos.session.infoCollapsed";
@@ -68,7 +69,7 @@ function MiniRing({ pct }: { pct: number | null }) {
   );
 }
 
-export function SessionInfoRail({ session, detail, onExpand }: { session: Session; detail: SessionDetail | undefined; onExpand: () => void }) {
+export function SessionInfoRail({ session, detail, onExpand, onSummary }: { session: Session; detail: SessionDetail | undefined; onExpand: () => void; onSummary?: () => void }) {
   const audits = useSessionAudits(session.id);
   const audit = audits.data?.audits[0];
   const model = currentModel(session);
@@ -88,6 +89,10 @@ export function SessionInfoRail({ session, detail, onExpand }: { session: Sessio
       >
         <IconPanelOpen size={16} />
       </button>
+      {/* Auch eingeklappt erreichbar – eigener Knopf, nicht Teil der Aufklapp-Fläche. */}
+      <div className="grid shrink-0 place-items-center border-b border-a-line py-1.5">
+        <SummaryButton sessionId={session.id} variant="icon" onTriggered={onSummary} className="border-0" />
+      </div>
       {/* Der ganze Balken ist Klickfläche zum Aufklappen (Tastatur: der Knopf oben). */}
       <div role="presentation" onClick={onExpand} className="cc-scroll grid min-h-0 flex-1 cursor-pointer content-start divide-y divide-a-line overflow-y-auto hover:bg-a-p2/40">
         <Stat icon={<IconChip size={15} />} value={model ? <ModelLines model={shortModel(model)} /> : "–"} label={`${t("Modell: {model}", { model: model ?? t("unbekannt") })}${session.models.length > 1 ? ` ${t("(in dieser Session: {models})", { models: session.models.join(", ") })}` : ""}`} tone="text-[var(--a-claude)]" />

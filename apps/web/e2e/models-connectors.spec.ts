@@ -22,7 +22,7 @@ test.beforeEach(async ({ context, baseURL }) => {
 
 test("Modelle: eigener Endpunkt, Test, Rolle zuordnen; LM Studio ehrlich über die Brücke", async ({ page }) => {
   await page.goto("/settings#modelle");
-  const section = page.locator("section#modelle");
+  const section = page.locator("#modelle");
   await expect(section.getByRole("heading", { name: "Modelle" })).toBeVisible();
   await expect(section.getByLabel("Wer antwortet")).toBeVisible({ timeout: 30_000 });
   await expect(section.getByTestId("active-skills.create")).toHaveText(/Opus 5\.5 \(Claude Code\)/);
@@ -73,7 +73,7 @@ test("Modelle: eigener Endpunkt, Test, Rolle zuordnen; LM Studio ehrlich über d
 
 test("Konnektoren: Higgsfield-Vorlage (Anmeldung nötig), eigener Konnektor mit Token → Werkzeuge, an/aus", async ({ page }) => {
   await page.goto("/settings#konnektoren");
-  const section = page.locator("section#konnektoren");
+  const section = page.locator("#konnektoren");
   await expect(section.getByRole("heading", { name: "Konnektoren" })).toBeVisible();
   await expect(section.getByRole("button", { name: /Konnektor hinzufügen/ })).toBeVisible({ timeout: 30_000 });
 

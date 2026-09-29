@@ -133,7 +133,7 @@ function EmptyLine({ children }: { children: ReactNode }) {
 
 function PanelLink({ to, children }: { to: string; children: ReactNode }) {
   return (
-    <Link to={to} className="rounded px-1.5 py-0.5 text-caption text-a-mut transition-colors hover:bg-a-p2 hover:text-a-ink">
+    <Link to={to} className="rounded px-1.5 py-0.5 text-caption text-a-mut transition-colors hover:bg-a-p2 hover:text-a-ink pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center">
       {children} <span aria-hidden>→</span>
     </Link>
   );
@@ -183,7 +183,7 @@ function CalmLine({ tiles, urgent }: { tiles: MetricTile[]; urgent: boolean }) {
       {tiles.map((tile, i) => (
         <span key={tile.key} className="inline-flex items-center gap-1.5">
           {i > 0 && <span aria-hidden>{" · "}</span>}
-          <Link to={tile.href} className="rounded px-0.5 text-a-ink transition-colors hover:text-a-acc focus-visible:outline-2 focus-visible:outline-a-acc">
+          <Link to={tile.href} className="rounded px-0.5 text-a-ink transition-colors hover:text-a-acc focus-visible:outline-2 focus-visible:outline-a-acc pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center">
             {ZERO_TEXT[tile.key] ?? `0 ${tile.label}`}
           </Link>
         </span>
@@ -308,7 +308,7 @@ export function Overview() {
             {data.criticalSessions.map((s) => {
               const meta = stateMeta(s.state as never);
               return (
-                <Link key={s.sessionKey} to={s.href} className="grid grid-cols-[8px_minmax(0,1fr)_auto] items-center gap-2.5 rounded-lg px-2.5 py-2 text-callout transition-colors duration-150 hover:bg-a-p2">
+                <Link key={s.sessionKey} to={s.href} className="grid grid-cols-[8px_minmax(0,1fr)_auto] items-center gap-2.5 rounded-lg px-2.5 py-2 text-callout transition-colors duration-150 hover:bg-a-p2 pointer-coarse:min-h-11">
                   <span className={`h-2 w-2 rounded-full ${meta.dot}`} />
                   {/* Name vom Server nach `sessionLabel` – nie „(noch ohne Titel)“ oder eine Kennung. */}
                   <span className="truncate text-a-ink">{s.label}</span>
@@ -328,7 +328,7 @@ export function Overview() {
           <Card className="grid content-start gap-0.5 p-1.5">
             {data.baustellen.length === 0 && <EmptyLine>{t("Noch keine Baustelle mit Sessions.")}</EmptyLine>}
             {(allBaustellen ? data.baustellen : data.baustellen.slice(0, BAUSTELLEN_LIMIT)).map((b) => (
-              <Link key={b.slug} to={`/sessions/coding/${b.slug}`} className="grid gap-1.5 rounded-lg px-2.5 py-2 transition-colors duration-150 hover:bg-a-p2">
+              <Link key={b.slug} to={`/sessions/coding/${b.slug}`} className="grid gap-1.5 rounded-lg px-2.5 py-2 transition-colors duration-150 hover:bg-a-p2 pointer-coarse:min-h-11">
                 <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 text-callout">
                   <span className="truncate text-a-ink">{b.label}</span>
                   <span className="font-mono text-caption tabular-nums text-a-mut">
@@ -359,7 +359,7 @@ export function Overview() {
           <Card className="grid content-start gap-0.5 p-1.5">
             {recentDone.length === 0 && <EmptyLine>{t("Noch nichts fertig geworden.")}</EmptyLine>}
             {recentDone.map((d) => (
-              <Link key={d.id} to={d.href} className="grid grid-cols-[8px_minmax(0,1fr)_auto] items-center gap-2.5 rounded-lg px-2.5 py-2 text-callout transition-colors duration-150 hover:bg-a-p2">
+              <Link key={d.id} to={d.href} className="grid grid-cols-[8px_minmax(0,1fr)_auto] items-center gap-2.5 rounded-lg px-2.5 py-2 text-callout transition-colors duration-150 hover:bg-a-p2 pointer-coarse:min-h-11">
                 <span className={cn("h-2 w-2 rounded-full", d.kind === "entry" ? "bg-a-acc" : "bg-a-ok")} />
                 <span className="grid min-w-0">
                   <span className="truncate text-a-ink">{d.title}</span>
@@ -408,7 +408,7 @@ function ProjectContainersLine({ server }: { server: ServerSnapshot }) {
       ? t("Projekt-Container: {bad} von {total} gestört ({names})", { bad: troubled.length, total: cc.length, names: troubled.map((c) => c.name).join(", ") })
       : t("Projekt-Container: {running} von {total} laufen gesund", { running, total: cc.length });
   return (
-    <Link to="/server" className="grid grid-cols-[8px_minmax(0,1fr)] items-center gap-2.5 rounded-lg px-2.5 py-2 text-callout transition-colors duration-150 hover:bg-a-p2">
+    <Link to="/server" className="grid grid-cols-[8px_minmax(0,1fr)] items-center gap-2.5 rounded-lg px-2.5 py-2 text-callout transition-colors duration-150 hover:bg-a-p2 pointer-coarse:min-h-11">
       <span className={cn("h-2 w-2 rounded-full", tone)} />
       <span className="truncate text-a-mut">{text}</span>
     </Link>
@@ -447,7 +447,7 @@ function BriefingTeaser({ fingerprint }: { fingerprint: string | undefined }) {
       ) : (
         <p className="min-w-0 flex-1 text-a-mut">{report.isLoading ? t("Briefing wird geladen …") : t("Noch kein Briefing für heute. Nyx schreibt es morgens von selbst, oder du erstellst es jetzt.")}</p>
       )}
-      <Link to="/briefing" className="shrink-0 text-caption text-a-acc hover:underline">
+      <Link to="/briefing" className="shrink-0 text-caption text-a-acc hover:underline pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center">
         {data?.stale ? t("Neu schreiben →") : t("Zum Briefing →")}
       </Link>
     </div>
@@ -459,7 +459,7 @@ const BUILD_STATE_DOT: Record<BuildGroup["state"], string> = { queued: "bg-a-dim
 
 function OpsRow({ to, dot, children, sub }: { to: string; dot: string; children: ReactNode; sub?: ReactNode }) {
   return (
-    <Link to={to} className="grid grid-cols-[8px_minmax(0,1fr)] items-center gap-2.5 rounded-lg px-2.5 py-2 text-callout transition-colors duration-150 hover:bg-a-p2">
+    <Link to={to} className="grid grid-cols-[8px_minmax(0,1fr)] items-center gap-2.5 rounded-lg px-2.5 py-2 text-callout transition-colors duration-150 hover:bg-a-p2 pointer-coarse:min-h-11">
       <span className={cn("h-2 w-2 rounded-full", dot)} />
       <span className="grid min-w-0">
         <span className="truncate text-a-ink">{children}</span>

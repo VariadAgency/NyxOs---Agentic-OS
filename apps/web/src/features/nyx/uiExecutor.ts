@@ -469,31 +469,165 @@ export function realClick(el: HTMLElement): void {
   el.click();
 }
 
-const pathOf = (route: string) => route.split(/[?#]/)[0] ?? route;
-
-/** Eintrag in der Leiste, der genau diese Seite öffnet (`<a data-nyx="nav:…" href="/git">`). */
-function navLinkFor(route: string, root: ParentNode): HTMLElement | null {
-  const want = pathOf(route);
-  for (const a of root.querySelectorAll<HTMLElement>('[data-nyx^="nav:"]')) {
-    const href = a.getAttribute("href");
-    if (href && pathOf(href) === want) return a;
-  }
-  return null;
-}
-
 /** Ist das Element selbst anklickbar (Knopf/Link), oder nur eine Karte, auf die Nyx zeigt? */
 const isClickable = (el: Element) => el.matches(CLICKABLE) || el.matches("summary,input,select,textarea,[onclick]");
 
-/** Leiste versteckt (Handy-Schublade)? Dann erst „Menü“ öffnen – auch das klickt der Cursor sichtbar. */
+/** Leiste versteckt (Handy-Schublade)? Dann erst „Mehr“ (untere Leiste) bzw. „Menü“ öffnen – auch das klickt der
+ * Cursor sichtbar. vorher gab es den Knopf „menue“ nicht mehr – am Handy sprang Nyx deshalb still. */
 async function revealNav(target: string, root: ParentNode, deps: ExecDeps): Promise<void> {
   if (!target.startsWith("nav:") || findNyxTarget(target, root)) return;
   if (!root.querySelector(`[data-nyx="${CSS.escape(target)}"]`)) return;
-  const menu = findNyxTarget("menue", root);
+  const menu = findNyxTarget("tabbar:mehr", root) ?? findNyxTarget("menue", root);
   if (!menu) return;
   const c = centerOf(menu);
   await deps.cursor.flyTo(c.x, c.y);
   await deps.cursor.press();
   realClick(menu);
+}
+
+// ───────────── Navigation per Cursor ─────────────
+
+const pathOf = (route: string) => (route.split(/[?#]/)[0] ?? route).replace(/(.)\/+$/, "$1");
+const safeDecode = (s: string) => {
+  try {
+    return decodeURI(s);
+  } catch {
+    return s;
+  }
+};
+/** Pfad-Vergleich unabhängig von Kodierung (`/skills/a%20b` = `/skills/a b`). */
+const samePath = (a: string, b: string) => safeDecode(pathOf(a)) === safeDecode(pathOf(b));
+/** `prefix` ist ein ganzer Pfad-Abschnitt von `path` (`/settings` ⊂ `/settings/konto`, nicht `/set`). */
+const underPath = (path: string, prefix: string) => samePath(path, prefix) || safeDecode(pathOf(path)).startsWith(`${safeDecode(pathOf(prefix))}/`);
+
+/** Wohin führt ein Klick auf das Element? Link-Ziel oder `data-nyx-href` (Kacheln/Karten, die per Code navigieren). */
+function hrefOf(el: Element): string | null {
+  const h = el.getAttribute("data-nyx-href") ?? (el.matches("a[href]") ? el.getAttribute("href") : null);
+  return h && h.startsWith("/") ? h : null;
+}
+
+/** Höchstens so viele Klicks für eine Navigation (Leiste → Übersicht → Bereich → Unterseite → …). */
+const MAX_NAV_STEPS = 8;
+/** So lange wartet der Cursor nach einem Klick auf den Seitenwechsel bzw. auf das nächste Ziel. */
+const NAV_STEP_WAIT_MS = 2500;
+
+/** Ein Leisten-Eintrag: am Handy lieber das Pendant in der unteren Leiste (sichtbar), sonst über „Mehr“ aufklappen. */
+async function navElement(navId: string, root: ParentNode, deps: ExecDeps): Promise<HTMLElement | null> {
+  const tab = findNyxTarget(`tabbar:${navId}`, root);
+  if (tab && root.querySelector(`[data-nyx="tabbar:${CSS.escape(navId)}"]`) === tab) return tab;
+  const id = `nav:${navId}`;
+  await revealNav(id, root, deps);
+  return waitFor(() => {
+    const el = root.querySelector<HTMLElement>(`[data-nyx="${CSS.escape(id)}"]`);
+    return el && isVisible(el) ? el : null;
+  }, 800, root);
+}
+
+/** Ziel eines Klickpfad-Schritts (data-nyx-Kennung); `nav:<id>` klappt die Leiste bei Bedarf auf. */
+async function viaElement(step: string, root: ParentNode, deps: ExecDeps, wait: number): Promise<HTMLElement | null> {
+  if (step.startsWith("nav:")) return navElement(step.slice(4), root, deps);
+  return waitFor(() => {
+    const el = root.querySelector<HTMLElement>(`[data-nyx="${CSS.escape(step)}"]`);
+    return el && isVisible(el) ? el : null;
+  }, wait, root);
+}
+
+/** Nächster Klick ohne Klickpfad: ein sichtbarer Link genau zum Ziel, sonst der längste passende Abschnitt, sonst die
+ * Leiste (als `{ nav }` – sie kann am Handy zu sein und wird dann erst aufgeklappt). */
+function genericCandidate(targetPath: string, current: string, root: ParentNode, tried: Set<Element>): HTMLElement | { nav: string } | null {
+  const links = [...root.querySelectorAll<HTMLElement>("a[href],[data-nyx-href]")].filter((el) => !tried.has(el) && isVisible(el));
+  const exact = links.filter((el) => samePath(hrefOf(el) ?? "", targetPath));
+  const exactHit = exact.find((el) => el.hasAttribute("data-nyx")) ?? exact[0];
+  if (exactHit) return exactHit;
+  // Tiefer in dieselbe Richtung: Link, dessen Ziel ein Abschnitt des Ziels und länger als der jetzige Stand ist.
+  const isBar = (el: Element) => /^(nav|tabbar):/.test(el.getAttribute("data-nyx") ?? "");
+  const deeper = links
+    .map((el) => ({ el, href: hrefOf(el) ?? "" }))
+    .filter((c) => c.href && !isBar(c.el) && underPath(targetPath, c.href) && !underPath(current, c.href))
+    .sort((a, b) => pathOf(b.href).length - pathOf(a.href).length)[0];
+  if (deeper) return deeper.el;
+  // Leiste: der Eintrag, unter dem das Ziel liegt.
+  let best: { id: string; len: number } | null = null;
+  for (const el of root.querySelectorAll<HTMLElement>('[data-nyx^="nav:"]')) {
+    const href = el.getAttribute("href");
+    const id = el.getAttribute("data-nyx")?.slice(4);
+    if (!href || !id || tried.has(el) || !underPath(targetPath, href) || underPath(current, href)) continue;
+    if (!best || href.length > best.len) best = { id, len: href.length };
+  }
+  return best ? { nav: best.id } : null;
+}
+
+/** Schöner Name eines Schritts für die Antwort („Skills → /web-design“). */
+const stepName = (el: HTMLElement) => (labelOf(el).split(/\s[–-]\s/)[0] ?? "").slice(0, 40) || (el.getAttribute("data-nyx") ?? "");
+
+/** `navigate`: Schritt für Schritt per Cursor bis zum Ziel. Kein stiller Routensprung. */
+async function navigateByCursor(cmd: Extract<NyxUiCommand, { action: "navigate" }>, deps: ExecDeps, root: ParentNode): Promise<ExecResult> {
+  const targetPath = pathOf(cmd.route);
+  const via = cmd.via ?? [];
+  const tried = new Set<Element>();
+  const trail: string[] = [];
+  const wait = deps.waitMs ?? NAV_STEP_WAIT_MS;
+  let viaPos = 0;
+  for (let i = 0; i < MAX_NAV_STEPS && !samePath(deps.route(), targetPath); i++) {
+    const current = deps.route();
+    let el: HTMLElement | null = null;
+    // Klickpfad der Karte: der späteste Schritt, der schon zu sehen ist (bin ich schon in „Einstellungen“, geht es
+    // gleich mit der Zeile weiter) – sonst der nächste offene Schritt, auf den der Cursor kurz wartet.
+    for (let k = via.length - 1; k >= viaPos; k--) {
+      const step = via[k] ?? "";
+      if (step.startsWith("nav:")) {
+        if (k !== viaPos) continue;
+        viaPos = k + 1;
+        const href = root.querySelector(`[data-nyx="${CSS.escape(step)}"]`)?.getAttribute("href");
+        // Schon genau auf dieser Seite der Leiste – nicht noch mal klicken.
+        if (href && samePath(current, href)) break;
+        el = await navElement(step.slice(4), root, deps);
+        break;
+      }
+      const found = await viaElement(step, root, deps, k === viaPos ? wait : 0);
+      if (found && !tried.has(found)) {
+        el = found;
+        viaPos = k + 1;
+        break;
+      }
+    }
+    if (!el) {
+      const cand = await waitFor(() => genericCandidate(targetPath, current, root, tried), wait, root);
+      el = cand && "nav" in cand ? await navElement(cand.nav, root, deps) : cand;
+    }
+    if (!el) break;
+    tried.add(el);
+    if (!isClickable(el)) break;
+    const r = await clickEl(el, deps);
+    if (!r.ok) return { ...r, route: deps.route() };
+    trail.push(stepName(el));
+    await waitFor(() => (deps.route() !== current ? true : null), wait, root);
+  }
+  if (!samePath(deps.route(), targetPath)) {
+    const where = trail.length ? ` ${t("Ich bin bis „{trail}“ gekommen.", { trail: trail.join(" → ") })}` : "";
+    return { ok: false, detail: `${t("Ich finde keinen Klickweg nach {route}.", { route: cmd.route })}${where} ${t("Schau mit ui_read_screen, was zu sehen ist.")}`, route: deps.route() };
+  }
+  // Auf der Zielseite: `?…` (z. B. Vorlesen starten) bzw. `#…` (Stelle auf der Seite) direkt setzen – kein Tab-Wechsel.
+  const [, rest = ""] = /^[^?#]*(.*)$/.exec(cmd.route) ?? [];
+  if (rest) {
+    const search = rest.split("#")[0] ?? "";
+    const hash = rest.includes("#") ? rest.slice(rest.indexOf("#") + 1) : "";
+    if (search && !deps.route().endsWith(search)) deps.navigate(cmd.route);
+    else if (hash) deps.navigate(cmd.route);
+    if (hash) {
+      const spot = await waitFor(() => {
+        const e = root instanceof Document ? root.getElementById(hash) : root.querySelector<HTMLElement>(`#${CSS.escape(hash)}`);
+        return e && isVisible(e) ? e : null;
+      }, 1500, root);
+      if (spot) {
+        spot.scrollIntoView?.({ behavior: "smooth", block: "center" });
+        const c = centerOf(spot);
+        await deps.cursor.flyTo(c.x, c.y);
+        deps.cursor.glow(c.rect, 2400);
+      }
+    }
+  }
+  return { ok: true, route: cmd.route, ...(trail.length ? { detail: t("Weg: {trail}", { trail: trail.join(" → ") }) } : {}) };
 }
 
 async function clickEl(el: HTMLElement, deps: ExecDeps): Promise<ExecResult> {
@@ -530,11 +664,25 @@ function submitField(field: HTMLElement): void {
 /** Ziele, die es nur auf einer bestimmten Seite gibt. Fehlen sie, geht Nyx erst sichtbar dorthin (Leiste), statt
  * „nicht zu sehen“ zu melden – z. B. „neue-session“ (der „+“-Knopf in der Session-Tab-Leiste). */
 export const NYX_TARGET_HOME: Readonly<Record<string, string>> = { "neue-session": "/sessions" };
+/** Kennungen, deren Seite am Präfix erkennbar ist (Skill-Kachel, Einstellungs-Zeile, Idee, Session). */
+const NYX_PREFIX_HOME: readonly (readonly [string, string])[] = [
+  ["skill-", "/skills"],
+  ["settings:", "/settings"],
+  ["idea:", "/ideas"],
+  ["session-row:", "/sessions"],
+];
 
 /** `true` = Nyx musste erst die Seite wechseln (dann darf das Ziel etwas länger brauchen). */
 async function openHomeOf(target: string, root: ParentNode, deps: ExecDeps): Promise<boolean> {
-  const home = NYX_TARGET_HOME[target];
+  const home = NYX_TARGET_HOME[target] ?? NYX_PREFIX_HOME.find(([p]) => target.startsWith(p))?.[1];
   if (!home || findNyxTarget(target, root)) return false;
+  if (samePath(deps.route(), home)) {
+    // Schon auf der Seite, aber das Ziel fehlt (z. B. Unteransicht offen): Leisten-Eintrag noch mal sichtbar klicken.
+    const id = root.querySelector(`[data-nyx^="nav:"][href="${CSS.escape(home)}"]`)?.getAttribute("data-nyx")?.slice(4);
+    const nav = id ? await navElement(id, root, deps) : null;
+    if (nav) await clickEl(nav, deps);
+    return true;
+  }
   await executeNyxUi({ action: "navigate", route: home }, deps);
   return true;
 }
@@ -595,20 +743,7 @@ async function selectIn(el: HTMLElement, target: string, option: string, deps: E
 
 export async function executeNyxUi(cmd: NyxUiCommand, deps: ExecDeps): Promise<ExecResult> {
   const root = deps.root ?? document;
-  if (cmd.action === "navigate") {
-    // Sichtbar über die Leiste, wenn es genau dafür einen Eintrag gibt – sonst direkt (Unterseiten wie /ideas/7, ?e=…).
-    const link = pathOf(cmd.route) === cmd.route ? navLinkFor(cmd.route, root) : null;
-    if (link) {
-      await revealNav(link.getAttribute("data-nyx") ?? "", root, deps);
-      const shown = await waitFor(() => (isVisible(link) ? link : null), 600, root);
-      if (shown) {
-        const r = await clickEl(shown, deps);
-        if (r.ok) return { ...r, route: cmd.route };
-      }
-    }
-    deps.navigate(cmd.route);
-    return { ok: true, route: cmd.route };
-  }
+  if (cmd.action === "navigate") return navigateByCursor(cmd, deps, root);
   if (cmd.action === "read_screen") return { ok: true, screen: readScreen(root, deps.route()) };
 
   await revealNav(cmd.target, root, deps);

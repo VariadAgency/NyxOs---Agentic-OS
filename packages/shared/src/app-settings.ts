@@ -63,4 +63,4 @@ export function compareVersions(a: string, b: string): number {
 }
 
 /** GitHub repository ("owner/name") that releases and the installer come from. Set with scripts/set-repo.sh. */
-export const NYXOS_REPO = "OWNER/nyxos";
+export const NYXOS_REPO = "VariadAgency/NyxOs---Agentic-OS";

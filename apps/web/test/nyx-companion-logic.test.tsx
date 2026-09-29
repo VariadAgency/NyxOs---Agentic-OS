@@ -158,10 +158,10 @@ describe("Ausführer: Befehle", () => {
     root.remove();
   });
 
-  it("navigate ruft den Router", async () => {
+  it("navigate: schon auf der Seite → fertig, ohne Router-Sprung (nie still springen)", async () => {
     const navigate = vi.fn();
     const r = await executeNyxUi({ action: "navigate", route: "/git" }, { navigate, cursor: cursor(), root: document.body, route: () => "/git" });
-    expect(navigate).toHaveBeenCalledWith("/git");
+    expect(navigate).not.toHaveBeenCalled();
     expect(r).toMatchObject({ ok: true, route: "/git" });
   });
 

@@ -28,7 +28,7 @@ const stop = (e: MouseEvent) => {
   e.stopPropagation();
 };
 
-const SMALL = "inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-caption transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-a-acc";
+const SMALL = "inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-caption transition-colors duration-150 pointer-coarse:h-11 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-a-acc";
 
 export function AskNyxButton({ question, facts, label = t("Nyx fragen"), compact = false, inline = true, className }: AskNyxButtonProps) {
   const nyx = useAskNyx(question, facts);
@@ -49,7 +49,7 @@ export function AskNyxButton({ question, facts, label = t("Nyx fragen"), compact
       aria-label={compact ? title : undefined}
       title={title}
       className={cn(
-        compact ? "inline-grid h-7 w-7 place-items-center rounded-full border transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-a-acc" : SMALL,
+        compact ? "cc-hit inline-grid h-7 w-7 place-items-center rounded-full border transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-a-acc" : SMALL,
         nyx.speaking || busy ? "border-a-violet/60 bg-a-violet/15 text-a-ink" : "border-a-line bg-a-p2/80 text-a-mut hover:border-a-violet/50 hover:text-a-ink",
         className,
       )}
@@ -89,7 +89,20 @@ function AnswerCard({ nyx, floating }: { nyx: AskNyx; floating: boolean }) {
   const text = nyx.answer?.text ?? (nyx.partial || null);
   return (
     <CardShell floating={floating}>
-      <div role="status" aria-live="polite" data-testid="ask-nyx-answer" className="grid min-w-0 gap-2" onClick={(e) => e.stopPropagation()}>
+      <div
+        role="status"
+        aria-live="polite"
+        data-testid="ask-nyx-answer"
+        className="grid min-w-0 gap-2"
+        onClick={(e) => e.stopPropagation()}
+        // Solange Zeiger oder Fokus auf der Karte sind, schließt sie sich nicht von selbst.
+        onPointerEnter={() => nyx.hold(true)}
+        onPointerLeave={() => nyx.hold(false)}
+        onFocus={() => nyx.hold(true)}
+        onBlur={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) nyx.hold(false);
+        }}
+      >
         <div className="flex min-w-0 items-center gap-2 font-mono text-label uppercase tracking-[.12em] text-a-violet">
           <NyxAura size={16} state={nyx.state === "asking" ? "thinking" : nyx.speaking ? "speaking" : "idle"} />
           Nyx

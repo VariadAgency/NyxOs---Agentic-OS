@@ -7,7 +7,7 @@ export function CommandDialog(props: ComponentProps<typeof CommandPrimitive.Dial
   return (
     <CommandPrimitive.Dialog
       overlayClassName="fixed inset-0 z-50 cc-scrim"
-      contentClassName="fixed left-1/2 top-[18%] z-50 w-[92vw] max-w-[560px] -translate-x-1/2 overflow-hidden rounded-xl border border-a-line bg-a-p shadow-2xl"
+      contentClassName="cc-palette fixed left-1/2 top-[18%] z-50 w-[92vw] max-w-[560px] -translate-x-1/2 overflow-hidden rounded-xl border border-a-line bg-a-p shadow-2xl"
       {...props}
     />
   );

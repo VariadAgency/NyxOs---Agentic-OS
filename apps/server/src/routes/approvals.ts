@@ -10,6 +10,7 @@ import type { Db } from "../db/client.js";
 import { sessions } from "../db/schema.js";
 import type { LiveHub } from "../live.js";
 import { notify } from "../push/dispatcher.js";
+import type { NotifyEnv } from "../notifications/pipeline.js";
 import type { NtfySender } from "../push/ntfy.js";
 import { loadOrInitSettings } from "../push/settings.js";
 import { NOT_FOUND, parseSerialId } from "../ids.js";
@@ -20,6 +21,8 @@ export interface ApprovalsRouteDeps {
   /** Maschinen-Token-Prüfung wie bei /ingest (setzt `machineId`). */
   machineAuth: MiddlewareHandler<Env>;
   pushSender: NtfySender;
+  /** Notification environment (presence, away digest, Nyx). */
+  notifyEnv?: NotifyEnv;
   log: (msg: string, extra?: Record<string, unknown>) => void;
   /** nach einer Entscheidung der wartenden Auftrags-Session Bescheid sagen (tmux, P3 `send_text`). */
   tellSession?: (sessionKey: string, text: string) => Promise<unknown>;
@@ -66,10 +69,13 @@ export function registerApprovalsRoutes(app: Hono<Env>, deps: ApprovalsRouteDeps
           kind: "approval_needed",
           title: t("Freigabe nötig: {rule}", { rule: GUARD_RULE_LABELS[created.rule] }),
           message: `${created.auftrag ? `${created.auftrag}: ` : ""}${created.command}`.slice(0, 1000),
+          // The fact for the template ("„Session“ braucht deine Freigabe: …").
+          what: `${GUARD_RULE_LABELS[created.rule]} – ${created.command.replace(/\s+/g, " ").slice(0, 200)}`,
           path: "/inbox",
           sessionKey: known?.id ?? null,
+          priority: "high",
         },
-        { db, sender: pushSender, settings },
+        { db, sender: pushSender, settings, env: deps.notifyEnv },
       );
     } catch (e) {
       log("freigabe-push-fehler", { error: String(e), approvalId: created.id });
@@ -97,7 +103,8 @@ export function registerApprovalsRoutes(app: Hono<Env>, deps: ApprovalsRouteDeps
     const { result, created } = await checkGuard(db, parsed.data);
     if (created) {
       log("freigabe-angefragt", { id: created.id, rule: created.rule, sessionKey: created.sessionKey });
-      await announce(created);
+      // The hook waits at most 1.5 s – never wait for the notification (bridge, Nyx check up to 8 s).
+      void announce(created);
     } else if (result.decision === "allow") {
       log("freigabe-verbraucht", { id: result.approvalId });
       hub.broadcast(APPROVAL_LIVE_MESSAGE);

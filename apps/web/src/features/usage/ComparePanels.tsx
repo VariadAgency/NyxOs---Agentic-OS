@@ -9,6 +9,7 @@ import type { BaustellenUsage, ModelTrend, PeriodComparison, UsageComparison } f
 import { CompareBars, type CompareSlot } from "./CompareBars";
 import { formatTokensCompact, formatUsd } from "./format";
 import { EmptyLine, modelColor, Panel, Segmented, TOOL_NAME, toolColor } from "./parts";
+import { ModelName } from "../../lib/modelName";
 
 export type CompareKind = "week" | "month";
 const KINDS: { value: CompareKind; label: string }[] = [
@@ -203,7 +204,7 @@ export function ModelTrendPanel({ data, onOpen }: { data: ModelTrend | undefined
               <li key={m.key}>
                 <button type="button" onClick={() => onOpen(m.model)} className="inline-flex items-center gap-1.5 rounded-full border border-a-line px-2.5 py-1 text-caption text-a-ink transition-colors duration-150 hover:bg-a-p2">
                   <span className="h-2 w-2 rounded-[2px]" style={{ background: m.color }} />
-                  {m.model}
+                  <ModelName id={m.model} />
                   <span className="font-mono text-label text-a-mut">{formatTokensCompact(m.total)}</span>
                 </button>
               </li>

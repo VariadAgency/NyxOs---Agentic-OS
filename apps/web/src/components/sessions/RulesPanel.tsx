@@ -22,12 +22,12 @@ export function RulesPanel({ open, onClose, onToast }: RulesPanelProps) {
   const rules = [...(rulesQuery.data?.rules ?? [])].sort((a, b) => b.id - a.id);
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center cc-scrim p-4" role="presentation" onClick={onClose}>
+    <div className="fixed inset-0 z-50 grid place-items-center cc-scrim cc-sheet-wrap p-4" role="presentation" onClick={onClose}>
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="rules-panel-title"
-        className="grid max-h-[80vh] w-full max-w-lg gap-3 overflow-y-auto rounded-2xl border border-a-line bg-a-p2 p-4 shadow-pop"
+        className="cc-sheet grid max-h-[80vh] w-full max-w-lg gap-3 overflow-y-auto rounded-2xl border border-a-line bg-a-p2 p-4 shadow-pop"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-2">

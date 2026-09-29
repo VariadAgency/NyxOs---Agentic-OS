@@ -30,6 +30,6 @@
   "description": "Operating system for AI agent workflows: sees every Claude Code and Codex session, manages tasks, git and usage, with the assistant Nyx.",
   "license": "MIT",
   "nyxos": {
-    "repo": "OWNER/nyxos"
+    "repo": "VariadAgency/NyxOs---Agentic-OS"
   }
 }

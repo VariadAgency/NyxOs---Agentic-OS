@@ -5,6 +5,7 @@ import { useServerStatus, type ServerTone } from "../hooks/useHealth";
 import { cn } from "../lib/cn";
 import { openLoginDialog } from "../features/terminal/authClient";
 import { BridgeStatusLine } from "./BridgeStatus";
+import { SupportButton } from "../features/support/SupportButton";
 
 type DotState = ServerTone;
 
@@ -60,13 +61,15 @@ export function ConnectionStatus() {
         </button>
       )}
       <ConnectionsLink />
+      {/* Feedback & Unterstützen: Fehler melden, Idee schicken, Buy me Tokens (Blatt, alles in NyxOS). */}
+      <SupportButton />
     </div>
   );
 }
 
 /** Sprung zu Einstellungen → „Verbindungen“ (alle Verbindungen echt geprüft). Außerhalb
  * eines Routers (einzelne Komponenten-Tests) ein normaler Link statt einer Router-Navigation. */
-export const CONNECTIONS_HREF = "/settings#verbindungen";
+export const CONNECTIONS_HREF = "/settings/verbindungen";
 
 function ConnectionsLink() {
   const inRouter = useInRouterContext();

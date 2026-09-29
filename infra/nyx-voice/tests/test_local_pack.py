@@ -69,10 +69,10 @@ class LocalPackTests(unittest.TestCase):
         self.assertEqual(err.exception.code, "engine_missing")
 
     def test_previously_imported_pocket_voice_is_skipped_without_pytorch(self) -> None:
-        (self.tmp / IMPORTED_FILE).write_text(json.dumps({"voices": ["pocket-vera", "de_DE-thorsten-low"]}), encoding="utf-8")
+        (self.tmp / IMPORTED_FILE).write_text(json.dumps({"voices": ["pocket-vera", "de_DE-kerstin-low"]}), encoding="utf-8")
         svc = make_service(self.tmp)
         self.assertNotIn("pocket-vera", svc.voices)
-        self.assertIn("de_DE-thorsten-low", svc.voices)
+        self.assertIn("de_DE-kerstin-low", svc.voices)
 
     def test_engine_available_for_sherpa_engines(self) -> None:
         self.assertTrue(engine_available("piper"))

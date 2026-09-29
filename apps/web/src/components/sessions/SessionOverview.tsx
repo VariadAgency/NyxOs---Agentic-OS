@@ -95,7 +95,7 @@ export function SessionOverview({ sessions, placeLabel, onOpen, onDragStart, fil
 
       {ended.length > 0 && (
         <div>
-          <button type="button" onClick={() => setShowEnded((v) => !v)} className="text-caption text-a-mut hover:text-a-ink">
+          <button type="button" onClick={() => setShowEnded((v) => !v)} className="text-caption text-a-mut hover:text-a-ink pointer-coarse:min-h-11 pointer-coarse:pr-3">
             {showEnded ? "▾" : "▸"} {t("Beendet ({n})", { n: ended.length })}
           </button>
           {showEnded && (

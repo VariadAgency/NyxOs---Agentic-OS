@@ -3,9 +3,11 @@
   "short_name": "NyxOS",
   "description": "Command center for your AI coding sessions, tasks, servers and Nyx",
   "lang": "en",
+  "id": "/",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "orientation": "any",
   "background_color": "#000000",
   "theme_color": "#000000",
   "icons": [

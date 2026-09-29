@@ -76,7 +76,7 @@ export function HaikuPanel({ state, hidden, onClose, chat, draft, setDraft, anch
   // Demo: statt der festen Vorschläge die Fragen, die Nyx dort beantworten kann (über der Eingabe).
   const { demo } = useDemo();
   // Ein Zustandswort für Nyx – Tätigkeit vor Motor. Die technische Zeile
-  // „Kontext-Wächter: Hinweis ab … %“ steht nicht mehr im Kopf; sie lebt in den Einstellungen (/einstellungen/haiku).
+  // „Kontext-Wächter: Hinweis ab … %“ steht nicht mehr im Kopf; sie lebt in den Einstellungen (/einstellungen/nyx/motor).
   const word = nyxStateWord(status.data?.engine.state, visual !== "idle" ? visual : chat.busy ? "thinking" : "idle");
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -428,12 +428,12 @@ function Bubble({ entry }: { entry: ChatEntry }) {
           {entry.error.code === "engine" && entry.error.message && <span className="text-caption text-a-mut">{entry.error.message}</span>}
           {entry.error.code === "not_ready" && entry.error.message && <span className="text-caption text-a-mut">{entry.error.message}</span>}
           {entry.error.code === "disabled" && (
-            <Link to="/einstellungen/haiku" className="text-caption text-a-acc underline">
+            <Link to="/einstellungen/nyx/motor" className="text-caption text-a-acc underline">
               {t("In Einstellungen einschalten")}
             </Link>
           )}
           {entry.error.code === "budget" && (
-            <Link to="/einstellungen/haiku" className="text-caption text-a-acc underline">
+            <Link to="/einstellungen/nyx/motor" className="text-caption text-a-acc underline">
               {t("Zu den Nyx-Einstellungen")}
             </Link>
           )}

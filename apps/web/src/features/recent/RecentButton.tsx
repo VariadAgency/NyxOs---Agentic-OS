@@ -116,7 +116,7 @@ export function RecentButton({ currentTool }: { currentTool: ToolFilter }) {
           setOpen(!open);
         }}
         className={cn(
-          "flex h-(--a-ctl-h) items-center gap-1.5 rounded-md border border-a-line px-2.5 text-caption transition-colors",
+          "flex h-(--a-ctl-h) items-center justify-center gap-1.5 rounded-md border border-a-line px-2.5 text-caption transition-colors pointer-coarse:min-w-11",
           open ? "bg-a-p3 text-a-ink" : "text-a-mut hover:bg-a-p2 hover:text-a-ink",
         )}
         {...hint.triggerProps}

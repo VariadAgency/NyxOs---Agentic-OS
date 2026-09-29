@@ -21,7 +21,9 @@ const ALIASES: Record<string, string[]> = {
   ses: ["sessions", "session", "sitzungen"],
   brain: ["gehirn", "graph", "brain"],
   task: ["aufgaben", "tasks", "to dos", "todos"],
-  agent: ["agenten", "skills", "agenten und skills", "agents", "agents and skills"],
+  agent: ["agenten", "agenten und skills", "agents", "agents and skills"],
+  // Skills haben einen eigenen Tab (vorher landete „öffne Skills“ bei den Agenten).
+  skills: ["skills", "skill", "skill bibliothek", "skill-bibliothek", "skill library"],
   conf: ["konflikte", "conflicts"],
   use: ["nutzung", "verbrauch", "kosten", "usage", "costs"],
   idea: ["ideen", "ideas"],

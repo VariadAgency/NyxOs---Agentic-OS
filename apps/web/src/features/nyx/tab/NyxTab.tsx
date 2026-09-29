@@ -518,11 +518,20 @@ function MicButton({ loop, drive, state }: { loop: Loop; drive: LevelDrive; stat
         className="nyx-mic"
         onPointerDown={(e) => {
           e.preventDefault();
+          // Finger festhalten – sonst meldet iOS beim leichten Verrutschen „verlassen“ und bricht ab.
+          try {
+            e.currentTarget.setPointerCapture?.(e.pointerId);
+          } catch {
+            // jsdom/alte Browser
+          }
           if (!loop.awake) void loop.wake();
           else loop.pttDown();
         }}
         onPointerUp={() => loop.pttUp()}
         onPointerLeave={() => loop.holding && loop.pttUp()}
+        // iOS/Android brechen einen langen Druck ab (Scrollen, Lupe) – dann wie Loslassen behandeln.
+        onPointerCancel={() => loop.holding && loop.pttUp()}
+        onContextMenu={(e) => e.preventDefault()}
         onKeyDown={(e) => {
           if (e.key === "Enter" && !loop.awake) void loop.wake();
         }}

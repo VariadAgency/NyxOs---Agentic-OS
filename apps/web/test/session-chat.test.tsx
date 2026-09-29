@@ -1,4 +1,4 @@
-// Session-Chat: Eingabe mit Anhängen, Kopf mit genauem Modell + „Kontext komprimieren“ +
+// Session-Chat: Eingabe mit Anhängen, Kopf mit genauem Modell (Komprimieren steht in den Infos) +
 // „Session zusammenfassen & prüfen“, zusammenklappbare Info-Leiste, volle lange Nachrichten.
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -298,28 +298,15 @@ describe("Kopf: genaues Modell, Komprimieren, Prüfen", { timeout: 20_000 }, () 
     expect(await screen.findByTestId("session-model")).toHaveTextContent("Opus 5.5");
   });
 
-  it("„Kontext komprimieren“ nur, wenn die Session wartet – sonst gesperrt mit Grund", async () => {
-    setup({ session: makeSession({ state: "running" }), guard: { sessionKey: "claude:chat", thresholds: { hinweisPct: 60, erzwingenEnabled: true, erzwingenPct: 80, source: "default" }, pct: 42, hint: false, forced: false, attachable: true, state: "running" } });
-    await userEvent.click(await screen.findByRole("button", { name: "Weitere Aktionen" }));
+  // „Kontext komprimieren“ steht nicht mehr im Kopf, sondern in den Session-Infos (Steuerung) –
+  // Tests dazu: test/session-controls.test.tsx.
+  it("„Kontext komprimieren“ ist nicht mehr im Kopf (weder Zeile noch Menü „⋯“)", async () => {
+    setup();
+    const head = await screen.findByTestId("session-head");
+    await userEvent.click(await within(head).findByRole("button", { name: "Weitere Aktionen" }));
     const menu = await screen.findByRole("menu");
-    const item = within(menu).getByRole("menuitem", { name: /Kontext komprimieren/ });
-    expect(item).toBeDisabled();
-    expect(within(menu).getByText(/arbeitet gerade/)).toBeInTheDocument();
-  });
-
-  it("wartet die Session: Klick schickt /compact über den Kontext-Wächter-Weg (nur wenn wartend)", async () => {
-    const calls: { url: string; body: unknown }[] = [];
-    setup({
-      onPost: (url, body) => {
-        if (!url.includes("compact-now")) return undefined;
-        calls.push({ url, body });
-        return jsonResponse({ sent: true });
-      },
-    });
-    await userEvent.click(await screen.findByRole("button", { name: "Weitere Aktionen" }));
-    await userEvent.click(within(await screen.findByRole("menu")).getByRole("menuitem", { name: /Kontext komprimieren/ }));
-    await waitFor(() => expect(calls).toHaveLength(1));
-    expect(calls[0]).toEqual({ url: "/api/context-guard/sessions/claude%3Achat/compact-now", body: { onlyWhenWaiting: true } });
+    expect(within(menu).queryByRole("menuitem", { name: /komprimieren/i })).toBeNull();
+    expect(within(head).queryByRole("button", { name: /komprimieren/i })).toBeNull();
   });
 
   it("„Session zusammenfassen & prüfen“: ohne Haiku-Token sichtbar, aber gesperrt mit Erklärung", async () => {

@@ -9,6 +9,8 @@ import { pushLog } from "../db/schema.js";
 import { notify } from "../push/dispatcher.js";
 import type { NtfySender } from "../push/ntfy.js";
 import { loadOrInitSettings, patchSettings } from "../push/settings.js";
+import type { NotifyEnv } from "../notifications/pipeline.js";
+import { changedToggles, mirrorLegacyKinds } from "../notifications/rules.js";
 
 export interface PushRouteDeps {
   db: Db;
@@ -16,6 +18,8 @@ export interface PushRouteDeps {
   /** Adresse des eigenen ntfy-Dienstes, wie das iPhone sie erreicht (Tailscale, env `NTFY_PUBLIC_URL`);
    * `null` = noch keine — dann erreicht das iPhone den eigenen Dienst nicht (kein öffentlicher Port). */
   ntfyPublicUrl: string | null;
+  /** Notification environment for `POST /api/push/notify`. */
+  notifyEnv?: NotifyEnv;
 }
 
 /** ehrliche Antwort auf „Wie abonniere ich das auf dem iPhone?“ je ntfy-Ziel. */
@@ -61,7 +65,11 @@ export function registerPushRoutes(app: Hono<Env>, deps: PushRouteDeps): void {
     }
     const parsed = PushSettingsPatchSchema.safeParse(body);
     if (!parsed.success) return c.json({ error: t("Ungültige Einstellungen"), issues: parsed.error.issues.slice(0, 5) }, 400);
+    const before = parsed.data.enabledKinds ? (await loadOrInitSettings(db)).enabledKinds : null;
     const updated = await patchSettings(db, parsed.data);
+    // Old on/off switches per kind keep working – as level "never" or the default. Clients send ALL kinds: mirror only
+    // the ones really switched, otherwise every click would lift a "never" again.
+    if (parsed.data.enabledKinds && before) await mirrorLegacyKinds(db, changedToggles(before, parsed.data.enabledKinds));
     const { topic: _topic, ...rest } = updated;
     return c.json(rest);
   });
@@ -102,7 +110,7 @@ export function registerPushRoutes(app: Hono<Env>, deps: PushRouteDeps): void {
     const parsed = PushNotifySchema.safeParse(body);
     if (!parsed.success) return c.json({ error: t("Ungültiger Anlass"), issues: parsed.error.issues.slice(0, 5) }, 400);
     const settings = await loadOrInitSettings(db);
-    const result = await notify(parsed.data, { db, sender, settings });
+    const result = await notify(parsed.data, { db, sender, settings, env: deps.notifyEnv });
     return c.json(result);
   });
 

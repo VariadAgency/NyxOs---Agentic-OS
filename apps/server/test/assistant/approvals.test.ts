@@ -57,8 +57,8 @@ describe("POST /guard/check", () => {
     const [a] = await t.list();
     expect(a).toMatchObject({ id: r.approvalId, status: "pending", rule: "git_push", command: "git push origin HEAD", sessionKey: "claude:sess-1", auftrag: "T-01", attempts: 1 });
     expect(t.live).toContainEqual({ type: "haiku", what: "approval" });
-    const pushes = await t.db.select().from(pushLog);
-    expect(pushes.map((p) => p.kind), JSON.stringify(t.logs)).toContain("approval_needed");
+    // The push runs after the answer to the hook (which waits at most 1.5 s) – so poll instead of checking at once.
+    await expect.poll(async () => (await t.db.select().from(pushLog)).map((p) => p.kind), { timeout: 5000 }).toContain("approval_needed");
   });
 
   it("Wiederholung desselben Befehls: gleiche Anfrage, Versuche +1", async () => {

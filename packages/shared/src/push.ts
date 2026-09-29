@@ -7,7 +7,20 @@ import { z } from "zod";
  * ausgelöst wird beides erst, wenn die jeweilige Phase existiert. */
 // "context_guard_hinweis" — Session über der Hinweis-Schwelle (Kontext-Wächter, s. context-guard.ts).
 // "usage_warning" — Nutzung über einer Warnschwelle (5-Std-Fenster oder Tagesverbrauch, s. usage/warnings.ts).
-export const PushEventKindSchema = z.enum(["session_waiting", "session_crashed", "build_red", "night_run_done", "deploy_failed", "approval_needed", "context_guard_hinweis", "usage_warning"]);
+// "session_done", "bug_new", "auftrag_done": previously only reported in the away digest, now occasions like all others.
+export const PushEventKindSchema = z.enum([
+  "session_waiting",
+  "session_crashed",
+  "build_red",
+  "night_run_done",
+  "deploy_failed",
+  "approval_needed",
+  "context_guard_hinweis",
+  "usage_warning",
+  "session_done",
+  "bug_new",
+  "auftrag_done",
+]);
 export type PushEventKind = z.infer<typeof PushEventKindSchema>;
 
 export const PushPrioritySchema = z.enum(["min", "low", "default", "high", "urgent"]);
@@ -23,6 +36,9 @@ export const DEFAULT_PRIORITY_BY_KIND: Record<PushEventKind, PushPriority> = {
   approval_needed: "high",
   context_guard_hinweis: "default",
   usage_warning: "default",
+  session_done: "default",
+  bug_new: "default",
+  auftrag_done: "low",
 };
 
 /** Ein Anlass, den der Server an den Dispatcher gibt — noch ohne Bündelung/Ruhezeiten-Prüfung. */
@@ -34,6 +50,18 @@ export const PushNotifySchema = z.object({
   path: z.string().max(500).nullable().optional(),
   sessionKey: z.string().max(200).nullable().optional(),
   priority: PushPrioritySchema.optional(),
+  /**
+   * The fact for the template (`{was}`, e.g. "Kontext 65 % – Komprimieren empfohlen"). Without it `title`/`message`
+   * go out unchanged (older callers, test occasions); with it the pipeline writes the text in the chosen style
+   * (session name, workstream, time) or Nyx does.
+   */
+  what: z.string().max(500).optional(),
+  /** Extra for "Ausführlich" (`{details}`); otherwise from the session context. */
+  detail: z.string().max(500).nullable().optional(),
+  /** Time of the event (`{wann}`), default: now. */
+  at: z.string().max(40).nullable().optional(),
+  /** Already recognised as a sub-agent by the caller (otherwise the pipeline checks `sessions.parent_id`). */
+  subAgent: z.boolean().optional(),
 });
 export type PushNotifyInput = z.infer<typeof PushNotifySchema>;
 
@@ -48,6 +76,9 @@ export const PartialEnabledKindsSchema = z.object({
   approval_needed: z.boolean().optional(),
   context_guard_hinweis: z.boolean().optional(),
   usage_warning: z.boolean().optional(),
+  session_done: z.boolean().optional(),
+  bug_new: z.boolean().optional(),
+  auftrag_done: z.boolean().optional(),
 });
 export type PartialEnabledKinds = z.infer<typeof PartialEnabledKindsSchema>;
 

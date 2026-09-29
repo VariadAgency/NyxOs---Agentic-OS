@@ -50,13 +50,13 @@ export function SkillJobDialog({ mode, onClose }: { mode: JobDialogMode; onClose
   };
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center cc-scrim p-4" role="presentation" onClick={onClose}>
+    <div className="fixed inset-0 z-50 grid place-items-center cc-scrim cc-sheet-wrap p-4" role="presentation" onClick={onClose}>
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="skill-job-title"
         data-testid="skill-job-dialog"
-        className="grid max-h-[90dvh] w-full max-w-lg gap-3 overflow-y-auto rounded-2xl border border-a-line bg-a-p2 p-5 shadow-pop"
+        className="cc-sheet grid max-h-[90dvh] w-full max-w-lg gap-3 overflow-y-auto rounded-2xl border border-a-line bg-a-p2 p-5 shadow-pop"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => e.key === "Escape" && onClose()}
       >

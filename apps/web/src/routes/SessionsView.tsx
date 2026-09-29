@@ -2,6 +2,7 @@ import { t } from "@nyxos/shared";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { Button } from "../components/ui/button";
+import { cn } from "../lib/cn";
 import { Skeleton } from "../components/ui/skeleton";
 import { MoveDialog, type PendingMove } from "../components/sessions/MoveDialog";
 import { RulesPanel } from "../components/sessions/RulesPanel";
@@ -191,6 +192,9 @@ export function SessionsView() {
 
   return (
     <div className="grid h-full min-h-0 grid-cols-1 grid-rows-[auto_1fr]">
+      {/* Auf dem Handy wie in iOS – Liste → Session. In der Session weichen Filter und Session-Reiter
+          (dort gibt es „‹ Sessions“ im Kopf), damit Chat und Terminal die Höhe bekommen. */}
+      <div className={cn("min-w-0", selected && "max-md:hidden")}>
       <TabRows
         categories={tabCategories}
         openRows={openRows}
@@ -206,13 +210,16 @@ export function SessionsView() {
           if (session) openMove(session, ["baustelle"], session.art, baustelle);
         }}
       />
-      <div className="min-w-0 cc-scroll min-h-0 overflow-y-auto bg-a-bg">
+      </div>
+      {/* Feste Zeile 2 – auch wenn die Tab-Zeilen beim Tippen auf dem Handy ausgeblendet sind (cc-kb-hide). */}
+      <div className="row-start-2 min-w-0 cc-scroll min-h-0 overflow-y-auto bg-a-bg">
         {selected ? (
           <SessionFullscreen
             session={selected}
             categories={allCategoriesQuery.data ?? categories}
             at={route.at}
             onMove={(dims, art, baustelle) => openMove(selected, dims, art, baustelle)}
+            onBack={() => route.art && route.goTo(route.art, route.baustelle, null)}
           />
         ) : (
           <SessionOverview

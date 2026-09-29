@@ -4,8 +4,7 @@ import { Breadcrumbs } from "./Breadcrumbs";
 import { TopBarSlotTarget } from "./TopBarSlot";
 import { Button } from "./ui/button";
 import { HAIKU_SLOT_ID } from "../features/haiku/slot";
-import { toggleNavDrawer, useNavDrawerOpen } from "../lib/navDrawer";
-import { SIDEBAR_ID } from "./Sidebar";
+import { openCommandPalette } from "../lib/palette";
 
 /**
  * Kopfleiste: Brotkrümel, Nyx-Leiste, seitenbezogene Knöpfe (`TopBarSlot`).
@@ -24,7 +23,6 @@ import { SIDEBAR_ID } from "./Sidebar";
  * — der Hinweis „⌘K" steht dafür jetzt in der ART-Zeilen-Suche.
  */
 export function TopBar() {
-  const navOpen = useNavDrawerOpen();
   const demo = useAppInfo().data?.demo === true;
 
   // EINE Kopfzeile. Links der Brotkrümel (kürzt sich zuerst), rechts die Knöpfe der Seite
@@ -32,19 +30,7 @@ export function TopBar() {
   // (`--a-ctl-h`). `@container`: bei schmaler Leiste klappen Beschriftungen zu Symbolen ein;
   // reicht es trotzdem nicht, bricht die rechte Gruppe als Ganzes in eine zweite Zeile um.
   return (
-    <div data-testid="topbar" className="@container flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-a-line bg-a-bg py-2 pl-3 pr-4 md:pl-4">
-      {/* Unter 768 px ist die Seitenleiste ein Menü – dieser Knopf öffnet es (Esc/Hintergrund schließt). */}
-      <Button
-        variant="ghost"
-        onClick={toggleNavDrawer}
-        aria-label={t("Menü öffnen")}
-        aria-expanded={navOpen}
-        aria-controls={SIDEBAR_ID}
-        data-nyx="menue"
-        className="h-(--a-ctl-h) w-(--a-ctl-h) shrink-0 p-0 text-title2 text-a-ink md:hidden"
-      >
-        <span aria-hidden="true">☰</span>
-      </Button>
+    <div data-testid="topbar" className="cc-kb-hide @container flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-a-line bg-a-bg py-2 pl-3 pr-4 max-md:gap-x-2 max-md:py-1.5 max-md:pr-2 md:pl-4">
       {/* Der Brotkrümel reserviert 250 px (Session-Titel ≥ 200 px neben „… /“) und ist ein eigener
           Container — darunter klappen Art/Baustelle in „…“ ein (`Breadcrumbs`). */}
       <div className="@container/crumbs flex min-w-0 grow basis-[250px] items-center max-md:basis-[120px]">
@@ -63,6 +49,17 @@ export function TopBar() {
           („Haiku · bereit“, ab 200 px mit ⌘J, ab 230 px „Haiku fragen …“). */}
       <div id={HAIKU_SLOT_ID} data-testid="topbar-haiku" className="flex min-w-0 max-w-[360px] shrink-0 grow basis-[84px] empty:hidden" />
       <TopBarSlotTarget className="ml-auto flex min-w-0 items-center gap-2 empty:hidden" />
+      {/* Auf dem Handy gibt es kein ⌘K – die Befehlspalette (Suche, Seiten, „Neue Session“ …) als Knopf. */}
+      <Button
+        variant="ghost"
+        onClick={openCommandPalette}
+        aria-label={t("Suchen und Befehle")}
+        title={t("Suchen und Befehle")}
+        data-nyx="palette"
+        className="h-(--a-ctl-h) w-(--a-ctl-h) shrink-0 p-0 text-title2 text-a-ink md:hidden"
+      >
+        <span aria-hidden="true">⌕</span>
+      </Button>
     </div>
   );
 }

@@ -31,6 +31,8 @@ const { app, injectWebSocket, tickStates, haikuScheduler, bridgePresence, entrie
   archiveDir,
   webDir: process.env.WEB_DIR,
   log: (m, e) => console.log(m, JSON.stringify(e ?? {})),
+  // Betrieb & Zugriff: development server on this computer (only for development and tests).
+  hosting: { mode: "probe" },
 });
 const server = serve({ fetch: app.fetch, port, hostname: "127.0.0.1" }, () => console.log(`Probe-Server auf http://127.0.0.1:${port}`));
 injectWebSocket(server);

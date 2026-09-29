@@ -54,7 +54,7 @@ export function ImportButton({ className }: { className?: string }) {
         type="button"
         onClick={() => run.mutate()}
         disabled={run.isPending}
-        className="rounded border border-a-acc/40 bg-a-acc/10 px-2.5 py-1 text-caption text-a-acc hover:bg-a-acc/20 disabled:opacity-60"
+        className="rounded border border-a-acc/40 bg-a-acc/10 px-2.5 py-1 text-caption text-a-acc hover:bg-a-acc/20 disabled:opacity-60 pointer-coarse:min-h-11"
       >
         {run.isPending ? t("Importiert …") : t("Jetzt importieren")}
       </button>

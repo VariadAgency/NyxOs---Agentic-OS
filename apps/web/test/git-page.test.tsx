@@ -159,7 +159,7 @@ describe("Git-Seite — leere Zustände", () => {
     stub({ ...EMPTY, scan: { ...EMPTY.scan, bridge: { state: "offline", reason: "Rechner schläft oder ist offline" } } });
     renderGit();
     expect(await screen.findByText(/Brücke ist gerade nicht verbunden/)).toBeTruthy();
-    expect(screen.getByRole("link", { name: /Verbindungen prüfen/ }).getAttribute("href")).toBe("/settings#verbindungen");
+    expect(screen.getByRole("link", { name: /Verbindungen prüfen/ }).getAttribute("href")).toBe("/settings/verbindungen");
     expect(document.body.textContent ?? "").not.toMatch(TECH);
   });
 });

@@ -210,7 +210,7 @@ export function SettingsPanel({ settings, onChange }: { settings: NyxTabSettings
             {status.data && status.data.engine.state !== "ready" && <span className="text-a-wait"> {t("(nicht bereit)")}</span>}
           </span>
           {status.data?.engine.reason && <span className="text-caption text-a-mut">{status.data.engine.reason}</span>}
-          <Link to="/settings" className="justify-self-start text-caption text-a-acc underline">
+          <Link to="/settings/modelle" className="justify-self-start text-caption text-a-acc underline">
             {t("Modelle und Anbieter verwalten")}
           </Link>
         </div>

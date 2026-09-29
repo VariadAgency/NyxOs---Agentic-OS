@@ -61,7 +61,7 @@ describe("push/dispatcher notify", () => {
     const sender = new FakeNtfySender();
     const now = new Date(2026, 0, 1, 23, 0);
     const suppressed = await notify({ kind: "session_waiting", title: "t", message: "m" }, { db, sender, settings, now });
-    expect(suppressed).toEqual({ sent: false, reason: "quiet_hours" });
+    expect(suppressed).toMatchObject({ sent: false, reason: "quiet_hours" });
     expect(sender.sent).toHaveLength(0);
 
     const urgent = await notify({ kind: "deploy_failed", title: "t", message: "m", priority: "urgent" }, { db, sender, settings, now });
@@ -82,12 +82,13 @@ describe("push/dispatcher notify", () => {
     expect(sender.sent[1]?.message).toContain("2 neue Meldungen");
   });
 
-  it("ausgeschaltete Art wird gar nicht geloggt/gesendet", async () => {
+  // Every decision is in the history with a reason – also "occasion is off".
+  it("ausgeschaltete Art wird nicht gesendet, steht aber mit Grund im Protokoll", async () => {
     const { db } = await setup();
     const settings = await patchSettings(db, { enabledKinds: { night_run_done: false } });
     const sender = new FakeNtfySender();
     const result = await notify({ kind: "night_run_done", title: "t", message: "m" }, { db, sender, settings });
-    expect(result).toEqual({ sent: false, reason: "kind_disabled" });
+    expect(result).toMatchObject({ sent: false, reason: "kind_disabled" });
     expect(sender.sent).toHaveLength(0);
   });
 });

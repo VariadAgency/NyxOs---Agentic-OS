@@ -85,7 +85,7 @@ function SessionTab({ session, selected, onClick, onRequestClose }: { session: S
         }}
         {...hint.triggerProps}
         className={cn(
-          "flex h-9 min-w-[150px] max-w-[250px] items-center gap-2 rounded-t-lg border border-b-0 pl-[30px] pr-2.5 text-caption",
+          "flex h-9 min-w-[150px] max-w-[250px] items-center gap-2 rounded-t-lg border border-b-0 pl-[30px] pr-2.5 text-caption max-md:h-11",
           TAB_FOCUS,
           selected ? "border-a-line bg-a-bg text-a-ink" : "border-a-line bg-a-p2 text-a-mut hover:bg-a-p3 hover:text-a-ink",
         )}
@@ -270,7 +270,7 @@ function NewSessionTab() {
         aria-label={t("Neue Session")}
         {...hint.triggerProps}
         className={cn(
-          "relative top-px flex h-9 w-9 shrink-0 items-center justify-center rounded-t-lg border border-b-0 border-a-line bg-a-p2 text-headline text-a-mut hover:bg-a-p3 hover:text-a-ink",
+          "relative top-px flex h-9 w-9 shrink-0 items-center justify-center rounded-t-lg border border-b-0 border-a-line bg-a-p2 text-headline text-a-mut hover:bg-a-p3 hover:text-a-ink max-md:h-11 max-md:w-11",
           TAB_FOCUS,
         )}
       >
@@ -323,7 +323,8 @@ export function TabRows({ categories, openRows, route, activeBaustelleLabel, onD
   }
 
   return (
-    <div className="bg-a-p">
+    // Beim Tippen auf dem Handy (Tastatur offen) weg – Chat/Terminal brauchen die Höhe.
+    <div className="cc-kb-hide bg-a-p">
       <TopBarActions>
         <SearchBox />
         <RecentButton currentTool={route.tool} />
@@ -414,7 +415,7 @@ export function TabRows({ categories, openRows, route, activeBaustelleLabel, onD
             aria-selected={route.id === null}
             onClick={() => route.art && route.goTo(route.art, route.baustelle)}
             className={cn(
-              "relative top-px h-9 shrink-0 rounded-t-lg border border-b-0 px-3.5 text-caption",
+              "relative top-px h-9 shrink-0 rounded-t-lg border border-b-0 px-3.5 text-caption max-md:h-11",
               TAB_FOCUS,
               route.id === null ? "z-10 border-a-line bg-a-bg text-a-ink" : "border-a-line bg-a-p2 text-a-mut hover:bg-a-p3 hover:text-a-ink",
             )}

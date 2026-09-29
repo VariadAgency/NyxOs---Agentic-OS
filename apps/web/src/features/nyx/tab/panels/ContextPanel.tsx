@@ -38,7 +38,7 @@ function Row({ label, value, hint, color }: { label: string; value: string; hint
         {label}
         {hint && <span className="block text-caption text-a-mut">{hint}</span>}
       </span>
-      <span className="font-mono text-caption text-a-ink">{value}</span>
+      <span className="whitespace-nowrap text-right font-mono text-caption text-a-ink">{value}</span>
     </li>
   );
 }
@@ -60,7 +60,7 @@ export function ContextPanel({ messages, timings }: { messages: ConvMessage[]; t
       <section className="grid gap-2">
         <h3 className="font-mono text-label uppercase tracking-wide text-a-mut">{t("Was Nyx gerade weiß")}</h3>
         <ul className="grid gap-2 rounded-xl border border-a-line bg-a-p2 p-3">
-          <Row color="var(--a-acc)" label={t("Regeln für Nyx")} hint={t("Wer er ist, wie er antwortet, was nur du freigibst")} value={t("fest")} />
+          <Row color="var(--a-acc)" label={t("Regeln für Nyx")} hint={t("Wer Nyx ist, wie Nyx antwortet, was nur du freigibst")} value={t("fest")} />
           <Row
             color="var(--a-temp)"
             label={t("Gedächtnis")}
@@ -160,7 +160,7 @@ export function ContextPanel({ messages, timings }: { messages: ConvMessage[]; t
       <section className="grid gap-2">
         <h3 className="font-mono text-label uppercase tracking-wide text-a-mut">{t("Stimme – gemessene Zeiten")}</h3>
         {timings.length === 0 ? (
-          <div className="text-caption text-a-mut">{t("Sprich mit Nyx – dann steht hier, wie schnell er war.")}</div>
+          <div className="text-caption text-a-mut">{t("Sprich mit Nyx – dann steht hier, wie schnell die Antwort kam.")}</div>
         ) : (
           <table className="w-full text-left font-mono text-caption" data-nyx="nyx-zeiten">
             <thead className="text-a-mut">

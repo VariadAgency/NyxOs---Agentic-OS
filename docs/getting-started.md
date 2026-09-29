@@ -13,7 +13,7 @@ This page takes you from zero to your first live session in NyxOS.
 ## 2. Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OWNER/nyxos/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/VariadAgency/NyxOs---Agentic-OS/main/install.sh | bash
 ```
 
 What happens, step by step:

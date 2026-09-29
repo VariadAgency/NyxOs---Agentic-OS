@@ -1,7 +1,7 @@
 // Nyx kennt seine Mitteilungen. Alle Mitteilungen, die NyxOS in Nyx' Namen verschickt, landen in `push_log`:
 // die Einzel-Pushes über `notify()` (dispatcher.ts) und die Wege daneben — Abwesenheits-Bündel (nur ntfy),
 // Fragen und Freigabe-Karten über Telegram. Lesen: `listDeliveries()` (Nyx-Werkzeug `mitteilungen_liste`).
-import { t } from "@nyxos/shared";
+import { NOTIFY_DECISION_LABEL, NOTIFY_OCCASIONS, NotifyDecisionSchema, redactSecrets, t, type NotifyDecision } from "@nyxos/shared";
 import { desc } from "drizzle-orm";
 import type { Db } from "../db/client.js";
 import { pushLog } from "../db/schema.js";
@@ -14,19 +14,9 @@ export interface DeliveryChannel {
   skipped?: boolean;
 }
 
-/**
- * Geheimnisse aus protokollierten Texten entfernen (z. B. der Befehl einer Freigabe-Karte:
- * `curl -H "Authorization: Bearer …"`, `export GITHUB_TOKEN=…`). Gilt beim Speichern und beim Ausgeben an Nyx.
- */
-const MASK = "•••";
-const SECRET_RULES: [RegExp, string][] = [
-  [/\b(sk-ant-|sk-|ghp_|gho_|ghs_|ghu_|github_pat_|xox[abprs]-|glpat-|AKIA)[A-Za-z0-9_-]{8,}/g, MASK],
-  [/\b(Bearer|Basic)\s+[A-Za-z0-9._~+/=-]{8,}/gi, `$1 ${MASK}`],
-  [/\b([A-Za-z0-9_]*(?:token|secret|passwor[dt]|passwd|pwd|api[_-]?key|authorization|credentials?)[A-Za-z0-9_]*)(\s*[:=]\s*)("?)[^\s"']+/gi, `$1$2$3${MASK}`],
-];
-export function redactSecrets(text: string): string {
-  return SECRET_RULES.reduce((acc, [re, rep]) => acc.replace(re, rep), text);
-}
+/** Geheimnisse aus protokollierten Texten entfernen – die Regeln liegen in `@nyxos/shared` (redact.ts), damit auch
+ * die Diagnose einer Fehlermeldung (support.ts) genauso maskiert. */
+export { redactSecrets } from "@nyxos/shared";
 
 /** Eine Mitteilung außerhalb von `notify()` protokollieren. Fehler still (Protokoll darf nie den Versand stören). */
 export async function logDelivery(
@@ -51,22 +41,35 @@ export async function logDelivery(
   }
 }
 
-const WAY_LABEL: Record<string, string> = { mac: "Mac", browser: "Browser", ntfy: "iPhone (ntfy)", telegram: "Telegram" };
+const WAY_LABEL: Record<string, string> = { mac: "Rechner", browser: "Browser", ntfy: "Handy (ntfy)", telegram: "Telegram" };
+
+type LogRow = typeof pushLog.$inferSelect;
+
+/** Decision of a row – also for old rows without `decision` (written before the notification pipeline). */
+export function decisionOf(r: Pick<LogRow, "decision" | "suppressedReason" | "channels">): NotifyDecision {
+  const parsed = NotifyDecisionSchema.safeParse(r.decision);
+  if (parsed.success) return parsed.data;
+  if (r.suppressedReason) {
+    const legacy = NotifyDecisionSchema.safeParse(r.suppressedReason);
+    return legacy.success ? legacy.data : "send_failed";
+  }
+  if (!r.channels) return "sent";
+  return r.channels.some((c) => c.ok && !c.skipped) ? "sent" : "send_failed";
+}
+
+/** "Gesendet", "Nyx hat sie weggelassen – …", "Unter-Agent – nicht gemeldet" … in the current language. */
+export function decisionReason(r: Pick<LogRow, "decision" | "suppressedReason" | "channels" | "decisionNote">): string {
+  const label = t(NOTIFY_DECISION_LABEL[decisionOf(r)]);
+  return r.decisionNote ? `${label} – ${r.decisionNote}` : label;
+}
+
 const KIND_LABEL: Record<string, string> = {
-  session_waiting: "Session wartet",
-  session_crashed: "Session abgestürzt",
-  build_red: "Build rot",
-  night_run_done: "Nachtlauf fertig",
-  deploy_failed: "Deploy fehlgeschlagen",
-  approval_needed: "Freigabe nötig",
-  context_guard_hinweis: "Kontext-Hinweis",
-  usage_warning: "Nutzungswarnung",
+  ...Object.fromEntries(Object.entries(NOTIFY_OCCASIONS).map(([k, m]) => [k, m.label])),
   away_bundle: "Sammel-Mitteilung (während du weg warst)",
   away_questions: "Fragen an dich (Telegram)",
   away_question_hint: "Hinweis auf offene Fragen",
   approval_telegram: "Freigabe-Karte (Telegram)",
 };
-const REASON_LABEL: Record<string, string> = { quiet_hours: "Ruhezeit", send_failed: "Versand fehlgeschlagen" };
 
 /** German label from a map, translated when it is read; unknown keys stay as they are. */
 function translatedLabel(labels: Record<string, string>, key: string): string {
@@ -83,8 +86,12 @@ export interface DeliveryItem {
   /** Kam sie auf mindestens einem Weg an? */
   zugestellt: boolean;
   sammel: boolean;
-  /** Warum nicht (Ruhezeit, Fehler), sonst null. */
-  grund: string | null;
+  /** What happened to it, with reason ("Gesendet", "Nyx hat sie weggelassen – …", "Unter-Agent …"). */
+  grund: string;
+  /** Nyx' part (checked/written), otherwise null. */
+  nyx: { pruefung?: string; text?: string; notiz?: string } | null;
+  /** The user's feedback ("passt" / "brauche ich nicht"), otherwise null. */
+  rueckmeldung: string | null;
 }
 
 const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
@@ -96,7 +103,14 @@ export async function listDeliveries(db: Db, limit: number, stamp: (iso: string)
     const ways = (r.channels ?? []).filter((c) => !c.skipped).map((c) => ({ weg: translatedLabel(WAY_LABEL, c.channel), zugestellt: c.ok }));
     // Alte Zeilen ohne Wege: „verschickt“ hieß suppressedReason = null.
     const delivered = r.suppressedReason !== null ? false : r.channels ? ways.some((w) => w.zugestellt) : true;
-    const grund = r.suppressedReason ? translatedLabel(REASON_LABEL, r.suppressedReason) : !delivered ? t("Kein Weg hat geklappt") : null;
+    const grund = decisionReason(r);
+    const nyx = r.nyx
+      ? {
+          ...(r.nyx.review ? { pruefung: r.nyx.review } : {}),
+          ...(r.nyx.wrote ? { text: r.nyx.wrote === "nyx" ? t("von Nyx geschrieben") : t("Vorlage") } : {}),
+          ...(r.nyx.note ? { notiz: r.nyx.note } : {}),
+        }
+      : null;
     return {
       zeit: stamp(r.sentAt) ?? r.sentAt,
       art: translatedLabel(KIND_LABEL, r.kind),
@@ -106,6 +120,8 @@ export async function listDeliveries(db: Db, limit: number, stamp: (iso: string)
       zugestellt: delivered,
       sammel: r.bundle || r.bundledCount > 1,
       grund,
+      nyx,
+      rueckmeldung: r.feedback === "unnoetig" ? "brauche ich nicht" : r.feedback === "passt" ? "passt" : null,
     };
   });
 }

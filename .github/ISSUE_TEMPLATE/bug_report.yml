@@ -5,8 +5,8 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for reporting! Please check the [troubleshooting guide](https://github.com/OWNER/nyxos/blob/main/docs/troubleshooting.md) first.
-        **Security issue?** Do not open a public issue — see [SECURITY.md](https://github.com/OWNER/nyxos/blob/main/SECURITY.md).
+        Thanks for reporting! Please check the [troubleshooting guide](https://github.com/VariadAgency/NyxOs---Agentic-OS/blob/main/docs/troubleshooting.md) first.
+        **Security issue?** Do not open a public issue — see [SECURITY.md](https://github.com/VariadAgency/NyxOs---Agentic-OS/blob/main/SECURITY.md).
         **Remove anything private** (names, paths, tokens, transcript content) from logs and screenshots.
   - type: textarea
     id: what

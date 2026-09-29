@@ -30,6 +30,8 @@ export function hookEvent(fileName: string, payload: Record<string, unknown>, re
     target: s(input.file_path) ?? s(input.command, 200) ?? s(input.pattern) ?? null,
     prompt: s(payload.prompt, 500),
     agentType: s(payload.agent_type),
+    // Which sub-agent (SubagentStop) — deliberately not `agentId` (that marks lines FROM a sub-agent transcript).
+    subagentId: s(payload.agent_id, 100),
     model: s(payload.model),
     transcriptPath: s(payload.transcript_path, 2000),
   };

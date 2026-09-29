@@ -18,6 +18,7 @@ import { z } from "zod";
 import type { Env } from "../app.js";
 import type { ToolRegistry } from "../haiku/tools.js";
 import { isOwnerTurn } from "./appApi/internal.js";
+import { clickPathFor } from "./map/index.js";
 
 export type NyxUiOutcome =
   | { ok: true; route?: string; detail?: string; screen?: NyxUiScreen }
@@ -156,15 +157,21 @@ const autoRunRefusal = () => ({ erledigt: false, abgelehnt: true, hinweis: AUTO_
 /** Seite, die das Vorlesen von selbst startet. */
 export const briefingReadRoute = (art?: "briefing" | "recap") => `/briefing?vorlesen=1${art ? `&art=${art}` : ""}`;
 
+/** Navigation immer mit Klickpfad aus der NyxOS-Karte – der Browser klickt ihn sichtbar ab. */
+export function navigateCommand(route: string): NyxUiCommand {
+  const via = clickPathFor(route);
+  return via.length ? { action: "navigate", route, via } : { action: "navigate", route };
+}
+
 /** Werkzeuge im bestehenden Haiku-Werkzeugkasten (nur Umfang „full“, nie im Ideen-Link). */
 export function registerNyxUiTools(reg: ToolRegistry, bridge: NyxUiBridge): void {
   reg.register({
     name: "ui_navigate",
     description:
-      "Öffnet in NyxOS (im Browser des Nutzers) eine Seite, z. B. /sessions, /git, /tasks, /inbox, /audits, /files, /settings, /usage, /gehirn. Der Nyx-Cursor klickt dafür sichtbar den Eintrag in der Leiste. Nur interne Pfade.",
+      "Öffnet in NyxOS (im Browser des Nutzers) eine Seite, z. B. /sessions, /git, /tasks, /inbox, /audits, /files, /settings, /usage, /gehirn. Auch tiefe Ziele wie /skills/<key> oder /ideas/<id>. Der Nyx-Cursor klickt sich sichtbar hin (Leiste → Zeile/Kachel → Unterseite, Klickpfad aus der NyxOS-Karte), nie ein stiller Sprung. Nur interne Pfade. Wo etwas liegt, sagt nyxos_karte. Einstellungen haben Unterseiten: /settings/konto, /settings/mitteilungen (darunter /settings/mitteilungen-stil, /settings/mitteilungen-nyx, /settings/telegram), /settings/sessions, /settings/nutzung, /settings/lernbuch, /settings/ideen-links, /settings/modelle, /settings/betrieb (darunter /settings/verbindungen), /settings/zugaenge, /settings/unterstuetzen; Info & Hilfe: /einstellungen/info; Nyx: /einstellungen/nyx (Übersicht) und /einstellungen/nyx/persoenlichkeit, …/ueber-dich, …/stimme, …/begleiter, …/zugriff, …/motor. Ein Anker springt an den Abschnitt (z. B. /settings/mitteilungen#erweitert-ruhezeit).",
     scopes: ["full"],
     input: z.object({ route: NyxUiRouteSchema }),
-    handler: async (a) => toToolResult(await bridge.send({ action: "navigate", route: a.route })),
+    handler: async (a) => toToolResult(await bridge.send(navigateCommand(a.route))),
   });
   reg.register({
     name: "ui_click",
@@ -217,7 +224,7 @@ export function registerNyxUiTools(reg: ToolRegistry, bridge: NyxUiBridge): void
       "Liest der Nutzer das Briefing (oder abends den Recap) in NyxOS vor: öffnet die Briefing-Seite und startet das Vorlesen – der gerade erwähnte Abschnitt wird hervorgehoben. Für „Lies mir das Briefing vor“.",
     scopes: ["full"],
     input: z.object({ art: z.enum(["briefing", "recap"]).optional() }),
-    handler: async (a) => toToolResult(await bridge.send({ action: "navigate", route: briefingReadRoute(a.art) })),
+    handler: async (a) => toToolResult(await bridge.send(navigateCommand(briefingReadRoute(a.art)))),
   });
   reg.register({
     name: "ui_read_screen",
@@ -244,7 +251,8 @@ export function registerNyxUiRoutes(app: Hono<Env>, deps: { bridge: NyxUiBridge 
   app.post("/api/nyx/ui/command", async (c) => {
     const parsed = NyxUiCommandSchema.safeParse(await c.req.json().catch(() => null));
     if (!parsed.success) return c.json({ error: "Ungültiger Befehl", issues: parsed.error.issues.slice(0, 3) }, 400);
-    const cmd = parsed.data;
+    // Navigation ohne Klickpfad bekommt den aus der NyxOS-Karte (wie ui_navigate).
+    const cmd = parsed.data.action === "navigate" && !parsed.data.via ? navigateCommand(parsed.data.route) : parsed.data;
     // Gleiche Sperre wie im Werkzeug: riskante Ziele nur zeigen.
     if ((cmd.action === "click" || cmd.action === "select") && !cmd.target.startsWith("item:") && isRiskyLabel(cmd.target)) return c.json({ ...(await bridge.send({ action: "highlight", target: cmd.target })), ok: false, risky: true });
     return c.json(await bridge.send(cmd));

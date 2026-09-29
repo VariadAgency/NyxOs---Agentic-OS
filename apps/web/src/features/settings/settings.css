@@ -1,0 +1,39 @@
+/* A jump from the search (or an old link) briefly highlights the target block. */
+[data-settings-flash] {
+  border-radius: 14px;
+  animation: settings-flash 1.6s var(--a-ease) 1;
+}
+@keyframes settings-flash {
+  0%,
+  35% {
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--a-acc) 70%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 2px transparent;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-settings-flash] {
+    animation: none;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--a-acc) 70%, transparent);
+  }
+}
+
+/* Many older settings panels use plain <button>/<a> (not the `Button` building block with `cc-hit`) and were 20–30 px
+   high on a phone. On touch devices the hit area inside the subpage blocks grows to 44 px – everything looks the same.
+   In the components layer, so `absolute` & co. (utilities) still win. Sliders get a thumb-high area. */
+@layer components {
+  @media (pointer: coarse) {
+    [data-settings-panel] :where(button, a[href]) {
+      position: relative;
+    }
+    [data-settings-panel] :where(button, a[href])::after {
+      content: "";
+      position: absolute;
+      inset: min(0px, calc((100% - 44px) / 2));
+    }
+    [data-settings-panel] :where(input[type="range"]) {
+      min-height: 44px;
+    }
+  }
+}

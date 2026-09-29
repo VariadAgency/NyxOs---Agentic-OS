@@ -12,10 +12,10 @@ test.describe.configure({ timeout: 90_000 });
 test("Statuszeile verlinkt auf Einstellungen → Verbindungen, Prüfung live mit „Jetzt prüfen“", async ({ page }) => {
   await page.goto("/overview");
   await page.getByRole("link", { name: /Alle Verbindungen ansehen/ }).click();
-  await expect(page).toHaveURL(/\/settings#verbindungen$/);
+  await expect(page).toHaveURL(/\/settings\/verbindungen$/);
 
-  const section = page.locator("section#verbindungen");
-  await expect(section.getByRole("heading", { name: "Verbindungen" })).toBeVisible();
+  const section = page.locator("#verbindungen");
+  await expect(page.getByRole("heading", { name: "Verbindungen", level: 1 })).toBeVisible();
   const recheck = section.getByRole("button", { name: "Jetzt prüfen" });
   await expect(recheck).toBeVisible({ timeout: 30_000 });
   await recheck.click();

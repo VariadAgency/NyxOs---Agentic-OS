@@ -56,8 +56,8 @@ export function SessionTerminalActions({
         </Button>
       )}
       {confirmKill && (
-        <div className="fixed inset-0 z-50 grid place-items-center cc-scrim p-4" role="presentation" onClick={() => setConfirmKill(false)}>
-          <div role="alertdialog" aria-modal="true" aria-labelledby="kill-title" className="grid w-full max-w-sm gap-3 rounded-2xl border border-a-line bg-a-p2 p-4 shadow-pop" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 grid place-items-center cc-scrim cc-sheet-wrap p-4" role="presentation" onClick={() => setConfirmKill(false)}>
+          <div role="alertdialog" aria-modal="true" aria-labelledby="kill-title" className="cc-sheet grid w-full max-w-sm gap-3 rounded-2xl border border-a-line bg-a-p2 p-4 shadow-pop" onClick={(e) => e.stopPropagation()}>
             <h2 id="kill-title" className="font-display text-callout font-semibold text-a-ink">
               {t("Prozess wirklich beenden?")}
             </h2>

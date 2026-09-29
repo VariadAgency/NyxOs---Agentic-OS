@@ -5,9 +5,13 @@
 // selbst folgen und jede Station neu prüfen, Zugangsdaten beim Wechsel des Ursprungs abwerfen.
 //
 // Ausnahme nur für Entwicklung, Probe und Tests (Fake-Server auf 127.0.0.1): `NYXOS_ALLOW_PRIVATE_URLS=1`.
-// Restrisiko: DNS-Rebinding zwischen Prüfung und Verbindung (kein festgenagelter Resolver) – bewusst in Kauf genommen.
+// DNS rebinding between check and connection: closed by `pinnedFetch` below (used by the health check); the generic
+// `safeFetch` with the global `fetch` keeps that residual risk.
 import { lookup } from "node:dns/promises";
-import { isIP } from "node:net";
+import { request as httpRequest, type IncomingMessage } from "node:http";
+import { request as httpsRequest } from "node:https";
+import { isIP, type LookupFunction } from "node:net";
+import { Readable } from "node:stream";
 import { t } from "@nyxos/shared";
 
 export class UnsafeUrlError extends Error {
@@ -124,5 +128,73 @@ export function safeFetch(base: typeof fetch = fetch, policy: UrlPolicy = {}): t
         headers = kept;
       }
     }
+  }) as typeof fetch;
+}
+
+// ───────────────────────────── Pin the connection to the checked address ─────────────────────────────
+//
+// `safeFetch` checks the address via DNS, the actual `fetch` then resolves the name AGAIN by itself. Whoever controls
+// the DNS record answers "public" on the first look and "127.0.0.1" on the second (DNS rebinding). `pinnedFetch`
+// closes that: the connection resolves via `lookup`, checks every address there and connects exactly to it.
+// GET/HEAD without a body only (enough for checks like `/health`); `safeFetch` on top follows redirects.
+
+type LookupCallback = (err: Error | null, address: unknown, family?: number) => void;
+
+/** `lookup` for `http(s).request`: resolve, check every address, return only checked addresses. */
+export function pinnedLookup(policy: UrlPolicy = {}): LookupFunction {
+  const resolve = policy.resolve ?? defaultResolver;
+  const allowPrivate = policy.allowPrivate ?? privateUrlsAllowed();
+  const fn = (hostname: string, options: { all?: boolean } | undefined, callback: LookupCallback) => {
+    resolve(hostname).then(
+      (addrs) => {
+        if (addrs.length === 0 || (!allowPrivate && addrs.some(isBlockedAddress))) {
+          callback(new UnsafeUrlError(), "", 4);
+          return;
+        }
+        const list = addrs.map((address) => ({ address, family: isIP(address) === 6 ? 6 : 4 }));
+        const first = list[0] as { address: string; family: number };
+        if (options?.all) callback(null, list);
+        else callback(null, first.address, first.family);
+      },
+      (e: unknown) => callback(e instanceof Error ? e : new Error(String(e)), "", 4),
+    );
+  };
+  return fn as unknown as LookupFunction;
+}
+
+function toResponse(res: IncomingMessage): Response {
+  const headers = new Headers();
+  for (const [k, v] of Object.entries(res.headers)) if (v !== undefined) headers.set(k, Array.isArray(v) ? v.join(", ") : v);
+  const status = res.statusCode ?? 0;
+  const empty = status === 204 || status === 304;
+  if (empty) res.resume();
+  return new Response(empty ? null : (Readable.toWeb(res) as ReadableStream<Uint8Array>), { status, headers });
+}
+
+/** fetch-like call (GET/HEAD) whose connection only goes to checked addresses (see above). */
+export function pinnedFetch(policy: UrlPolicy = {}): typeof fetch {
+  const lookupFn = pinnedLookup(policy);
+  return (async (input: string | URL | Request, init?: RequestInit) => {
+    if (input instanceof Request) throw new UnsafeUrlError(t("Interner Fehler: Request-Objekte werden hier nicht unterstützt."));
+    const url = new URL(input);
+    const method = (init?.method ?? "GET").toUpperCase();
+    if ((method !== "GET" && method !== "HEAD") || init?.body) throw new UnsafeUrlError(t("Interner Fehler: nur GET/HEAD ohne Inhalt."));
+    const headers: Record<string, string> = {};
+    new Headers(init?.headers).forEach((v, k) => {
+      headers[k] = v;
+    });
+    const send = url.protocol === "https:" ? httpsRequest : httpRequest;
+    return await new Promise<Response>((resolve, reject) => {
+      const req = send(url, { method, headers, lookup: lookupFn, signal: init?.signal ?? undefined }, (res) => {
+        try {
+          resolve(toResponse(res));
+        } catch (e) {
+          res.destroy();
+          reject(e instanceof Error ? e : new Error(String(e)));
+        }
+      });
+      req.on("error", reject);
+      req.end();
+    });
   }) as typeof fetch;
 }

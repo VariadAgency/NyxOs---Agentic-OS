@@ -382,7 +382,7 @@ export function ConnectorsPanel() {
   }, [refetch]);
 
   return (
-    <section id={CONNECTORS_ANCHOR} className="grid scroll-mt-4 gap-2" data-nyx-risk="">
+    <section className="grid scroll-mt-4 gap-2" data-nyx-risk="">
       <SectionTitle>{t("Konnektoren")}</SectionTitle>
       <p className="text-callout text-a-mut">{t("Zusätzliche Werkzeuge für Nyx (MCP) – z. B. Bilder mit Higgsfield erzeugen oder GitHub lesen. Eingeschaltete Konnektoren nutzt Nyx im Chat, abgeschaltete nie.")}</p>
       {data && <KeyNotice state={data.secretsKey} />}

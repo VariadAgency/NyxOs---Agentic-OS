@@ -59,7 +59,8 @@ const COLOR_NAMES: Record<string, string> = {
 /** Kachel-Farben ohne Zustandsfarben (grün/gelb/rot), damit eine Kachel nie wie ein Zustand aussieht. */
 const PALETTE = ["var(--a-teal)", "var(--a-violet)", "var(--a-indigo)", "var(--a-lime)", "var(--a-temp)", "var(--a-done)", "var(--a-conf)"];
 
-function paletteColor(name: string): string {
+/** Also used for the agents in the session chat (same color per agent type). */
+export function agentPaletteColor(name: string): string {
   let h = 0;
   for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
   return PALETTE[h % PALETTE.length] ?? "var(--a-teal)";
@@ -93,7 +94,7 @@ export function buildAgentTiles(runs: AgentRun[], catalog: CatalogRow[], now: nu
     const runs7d = rs.filter((r) => Date.parse(startOf(r)) >= now - 7 * DAY_MS).length;
     const lastAt = rs[0] ? startOf(rs[0]) || null : null;
     const state: AgentState = running > 0 ? "laeuft" : rs.length === 0 ? "neu" : runs7d > 0 ? "aktiv" : "ruht";
-    const color = key === CODEX_KEY ? "var(--a-codex)" : ((details?.color ? COLOR_NAMES[details.color.toLowerCase()] : undefined) ?? paletteColor(key));
+    const color = key === CODEX_KEY ? "var(--a-codex)" : ((details?.color ? COLOR_NAMES[details.color.toLowerCase()] : undefined) ?? agentPaletteColor(key));
     return {
       key,
       label: key === CODEX_KEY ? t("Codex-Helfer") : key,

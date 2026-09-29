@@ -198,9 +198,10 @@ describe("Navigation vom Modell und Scan", () => {
     expect(a.events).toContain("click");
     expect(a.navigate).not.toHaveBeenCalled();
     expect(c.calls).toContain("press");
-    // Seiten ohne Leisten-Eintrag: Router wie bisher
-    await executeNyxUi({ action: "navigate", route: "/ideas/7" }, a.deps(c));
-    expect(a.navigate).toHaveBeenCalledWith("/ideas/7");
+    // Seiten ohne Klickweg → ehrliche Antwort statt stillem Router-Sprung.
+    const deep = await executeNyxUi({ action: "navigate", route: "/ideas/7" }, { ...a.deps(c), waitMs: 100 });
+    expect(deep.ok).toBe(false);
+    expect(a.navigate).not.toHaveBeenCalled();
   });
 
   it("read_screen nennt Listeneinträge nach Rang (item:<art>:<rang>), neueste zuerst", async () => {

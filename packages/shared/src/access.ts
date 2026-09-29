@@ -258,7 +258,7 @@ const ACCESS_ITEMS_DE: readonly AccessItem[] = [
     ],
     link: { url: "https://higgsfield.ai", label: "higgsfield.ai" },
     cost: "Jede Erzeugung kostet Higgsfield-Credits.",
-    target: "/settings#konnektoren",
+    target: "/settings/modelle#konnektoren",
   },
   {
     id: "elevenlabs",
@@ -273,7 +273,7 @@ const ACCESS_ITEMS_DE: readonly AccessItem[] = [
     ],
     link: { url: "https://elevenlabs.io/app/settings/api-keys", label: "elevenlabs.io" },
     cost: "Sprachausgabe kostet ElevenLabs-Guthaben.",
-    target: "/einstellungen/nyx#stimme",
+    target: "/einstellungen/nyx/stimme",
   },
   {
     id: "push",
@@ -283,7 +283,7 @@ const ACCESS_ITEMS_DE: readonly AccessItem[] = [
     unlocks: ["Meldungen aufs Handy, auch wenn NyxOS zu ist"],
     steps: [{ text: "Unten bei „Push“ einrichten und Test-Push schicken." }],
     link: { url: "https://ntfy.sh", label: "ntfy.sh" },
-    target: "/settings#push",
+    target: "/settings/mitteilungen",
   },
 ];
 

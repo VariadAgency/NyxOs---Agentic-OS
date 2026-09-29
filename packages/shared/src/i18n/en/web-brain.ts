@@ -180,6 +180,31 @@ const en: Record<string, string> = {
   "Kräfte zurücksetzen": "Reset forces",
   "Gehirn in 3D — mit Maus und Tastatur bewegen": "3D Brain — navigate with mouse and keyboard",
   "3D wird aufgebaut …": "Building 3D …",
+  // --- Settings overview + subpages, phone (bottom bar, terminal keys)
+  "Ziehen: umschauen": "Drag: look around",
+  "Ziehen: drehen": "Drag: rotate",
+  "Zwei Finger: zoomen": "Two fingers: zoom",
+  "Tippen: hinfliegen": "Tap: fly there",
+  // "Nyx explains" in the brain detail card
+  "Nyx erklärt": "Nyx explains",
+  "Was ist „{name}“ und wie hängt es zusammen? Sag kurz, was es ist, wofür es steht und was die wichtigsten Verbindungen sind.": "What is “{name}” and how does it connect? Briefly say what it is, what it stands for and what its most important connections are.",
+  "Titel": "Title",
+  "Schlagworte": "Tags",
+  "Verbindungen: keine": "Connections: none",
+  "Verbindungen ({n})": "Connections ({n})",
+  "Session": "Session",
+  "Sub-Agent": "Subagent",
+  "Datei": "File",
+  "Notiz": "Note",
+  "Bug": "Bug",
+  "Aufgabe": "Task",
+  "Idee": "Idea",
+  "Audit-Befund": "Audit finding",
+  "Entscheidung": "Decision",
+  "Frage": "Question",
+  "Problem": "Problem",
+  "Commit": "Commit",
+  "Zweig": "Branch",
 };
 
 export default en;

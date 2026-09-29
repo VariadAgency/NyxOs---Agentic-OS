@@ -9,8 +9,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/OWNER/nyxos/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/OWNER/nyxos/actions/workflows/ci.yml/badge.svg"></a>
-  <a href="https://github.com/OWNER/nyxos/releases/latest"><img alt="Neueste Version" src="https://img.shields.io/github/v/release/OWNER/nyxos"></a>
+  <a href="https://github.com/VariadAgency/NyxOs---Agentic-OS/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/VariadAgency/NyxOs---Agentic-OS/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://github.com/VariadAgency/NyxOs---Agentic-OS/releases/latest"><img alt="Neueste Version" src="https://img.shields.io/github/v/release/VariadAgency/NyxOs---Agentic-OS"></a>
   <a href="LICENSE"><img alt="MIT-Lizenz" src="https://img.shields.io/badge/license-MIT-blue"></a>
   <img alt="macOS und Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey">
 </p>
@@ -28,7 +28,7 @@ bleiben dabei immer bei dir.
 ## Schnellstart
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OWNER/nyxos/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/VariadAgency/NyxOs---Agentic-OS/main/install.sh | bash
 ```
 
 Das ist alles. Etwa eine Minute später öffnet sich dein Browser, und eine Einrichtung in fünf Schritten führt

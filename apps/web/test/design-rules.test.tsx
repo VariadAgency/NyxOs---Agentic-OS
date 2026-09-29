@@ -11,9 +11,10 @@
 //     Hintergrund-Klick und nach der Wahl eines Eintrags.
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { act, cleanup, fireEvent, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { MobileTabBar } from "../src/components/MobileTabBar";
 import { Sidebar } from "../src/components/Sidebar";
 import { TopBar } from "../src/components/TopBar";
 import { StatCard } from "../src/components/charts/StatCard";
@@ -145,23 +146,25 @@ function renderShell(path = "/overview") {
     <MemoryRouter initialEntries={[path]}>
       <TopBar />
       <Sidebar />
+      <MobileTabBar />
     </MemoryRouter>,
   );
 }
 
 describe("Seitenleiste bei 390 px", () => {
-  it("Kopfzeile hat einen Menü-Knopf (nur schmal sichtbar), der die Leiste öffnet und schließt", () => {
+  // The menu button moved from the header into the phone tab bar at the bottom („Mehr“).
+  it("die untere Leiste hat „Mehr“ (nur schmal sichtbar), das die Leiste öffnet und schließt", () => {
     renderShell();
     const nav = screen.getByRole("navigation", { name: "Hauptmenü" });
     expect(nav).toHaveAttribute("data-open", "false");
     // Auf breiten Bildschirmen steht die Leiste fest, schmal ist sie weggeschoben.
     expect(nav.className).toMatch(/max-md:-translate-x-full/);
-    const btn = screen.getByRole("button", { name: "Menü öffnen" });
-    expect(btn.className).toMatch(/md:hidden/);
+    const btn = screen.getByRole("button", { name: "Mehr" });
+    expect(screen.getByRole("navigation", { name: "Schnellzugriff" }).className).toMatch(/md:hidden/);
     expect(btn).toHaveAttribute("aria-expanded", "false");
     fireEvent.click(btn);
     expect(nav).toHaveAttribute("data-open", "true");
-    expect(screen.getByRole("button", { name: "Menü öffnen" })).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("button", { name: "Mehr" })).toHaveAttribute("aria-expanded", "true");
     fireEvent.keyDown(window, { key: "Escape" });
     expect(nav).toHaveAttribute("data-open", "false");
   });
@@ -176,11 +179,11 @@ describe("Seitenleiste bei 390 px", () => {
   it("Klick auf den abgedunkelten Hintergrund oder einen Eintrag schließt das Menü", () => {
     renderShell();
     const nav = screen.getByRole("navigation", { name: "Hauptmenü" });
-    fireEvent.click(screen.getByRole("button", { name: "Menü öffnen" }));
+    fireEvent.click(screen.getByRole("button", { name: "Mehr" }));
     fireEvent.click(screen.getByTestId("nav-backdrop"));
     expect(nav).toHaveAttribute("data-open", "false");
-    fireEvent.click(screen.getByRole("button", { name: "Menü öffnen" }));
-    fireEvent.click(screen.getByRole("link", { name: /Sessions/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Mehr" }));
+    fireEvent.click(screen.getByRole("navigation", { name: "Hauptmenü" }).querySelector('a[href="/sessions"]') as HTMLElement);
     expect(nav).toHaveAttribute("data-open", "false");
   });
 });
@@ -202,7 +205,7 @@ describe("Bedeutungsfarben statt einfarbig", () => {
     for (const item of NAV_ITEMS) expect(NAV_TONE[item.id], item.id).toBeDefined();
     expect(new Set(Object.values(NAV_TONE)).size).toBeGreaterThanOrEqual(12);
     renderShell("/sessions");
-    const active = screen.getByRole("link", { name: /Sessions/ });
+    const active = within(screen.getByRole("navigation", { name: "Hauptmenü" })).getByRole("link", { name: /Sessions/ });
     expect(active).toHaveAttribute("aria-current", "page");
     expect(active.className).toMatch(/bg-a-p3/);
     expect(active.className).not.toMatch(/bg-a-acc/);

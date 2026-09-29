@@ -2,9 +2,13 @@
 import type { GraphNode, GraphNodeDetail } from "@nyxos/shared";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { NodeCard } from "../src/features/brain/NodeCard";
+
+// the card now has the Nyx button (needs the query client, like in the app).
+const qc = new QueryClient();
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -27,9 +31,9 @@ describe("NodeCard (Info-Karte)", () => {
     const fetchMock = vi.fn((url: string) => Promise.resolve(new Response(JSON.stringify(url.includes("/api/graph/node/") ? detail : {}), { status: 200 })));
     vi.stubGlobal("fetch", fetchMock);
     render(
-      <MemoryRouter>
+      <QueryClientProvider client={qc}><MemoryRouter>
         <NodeCard node={node} onClose={() => undefined} />
-      </MemoryRouter>,
+      </MemoryRouter></QueryClientProvider>,
     );
     const card = screen.getByTestId("node-card");
     expect(card).toHaveTextContent("Planung"); // Kategorie aus dem Ordner
@@ -46,9 +50,9 @@ describe("NodeCard (Info-Karte)", () => {
     vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(new Response(JSON.stringify(detail), { status: 200 }))));
     const onClose = vi.fn();
     render(
-      <MemoryRouter>
+      <QueryClientProvider client={qc}><MemoryRouter>
         <NodeCard node={node} onClose={onClose} />
-      </MemoryRouter>,
+      </MemoryRouter></QueryClientProvider>,
     );
     await userEvent.click(screen.getByRole("button", { name: "Info schließen" }));
     expect(onClose).toHaveBeenCalledTimes(1);
@@ -66,15 +70,15 @@ describe("NodeCard (Info-Karte)", () => {
     try {
       const onClose = vi.fn();
       const { rerender } = render(
-        <MemoryRouter>
+        <QueryClientProvider client={qc}><MemoryRouter>
           <NodeCard node={node} onClose={onClose} />
-        </MemoryRouter>,
+        </MemoryRouter></QueryClientProvider>,
       );
       await userEvent.keyboard("{Escape}");
       expect(onClose).toHaveBeenCalledTimes(1);
       expect(outer).not.toHaveBeenCalled();
       // Ohne Karte kommt Esc wieder bei der Großansicht an.
-      rerender(<MemoryRouter>{null}</MemoryRouter>);
+      rerender(<QueryClientProvider client={qc}><MemoryRouter>{null}</MemoryRouter></QueryClientProvider>);
       await userEvent.keyboard("{Escape}");
       expect(outer).toHaveBeenCalledTimes(1);
     } finally {
@@ -85,9 +89,9 @@ describe("NodeCard (Info-Karte)", () => {
   it("Server nicht erreichbar: freundlicher Hinweis statt Technik-Meldung", async () => {
     vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(new Response("{}", { status: 500 }))));
     render(
-      <MemoryRouter>
+      <QueryClientProvider client={qc}><MemoryRouter>
         <NodeCard node={{ ...node, id: "note:andere.md" }} onClose={() => undefined} />
-      </MemoryRouter>,
+      </MemoryRouter></QueryClientProvider>,
     );
     await waitFor(() => expect(screen.getByTestId("node-card")).toHaveTextContent("Details sind gerade nicht abrufbar"));
   });

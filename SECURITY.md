@@ -16,7 +16,7 @@ updates) or with `nyxos update`.
 
 **Please do not open a public issue.** Report privately through GitHub:
 
-1. Go to <https://github.com/OWNER/nyxos/security/advisories/new>
+1. Go to <https://github.com/VariadAgency/NyxOs---Agentic-OS/security/advisories/new>
    (repository → **Security** → **Report a vulnerability**).
 2. Describe the problem, the affected version (`nyxos version`), how to reproduce it and what an attacker could
    achieve. A proof of concept helps.

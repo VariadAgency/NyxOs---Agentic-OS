@@ -77,7 +77,7 @@ export function EntryOverlay() {
   const stagePill = entry ? STAGE_META[entry.stage] : null;
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-col bg-a-bg/80 backdrop-blur-sm" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-40 flex flex-col bg-a-bg/80 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] backdrop-blur-sm" role="dialog" aria-modal="true">
       <div className="flex items-center gap-2 border-b border-a-line bg-a-p px-4 py-2.5">
         <button type="button" onClick={back} className="rounded border border-a-line px-2.5 py-1 text-caption text-a-mut hover:bg-a-p3">
           ‹ {t("Zurück")}

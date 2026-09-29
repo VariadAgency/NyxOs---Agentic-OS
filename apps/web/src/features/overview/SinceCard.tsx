@@ -168,7 +168,7 @@ export function SinceCard({ className, collapsible = false, place = "default" }:
             <span className="truncate font-sans text-caption font-normal text-a-mut">{sinceText ? t("seit {time}", { time: sinceText }) : q.isError ? t("Zeitraum nicht geladen") : t("lädt …")}</span>
           </h2>
           {data && data.groups.length > 0 && (
-            <button type="button" aria-expanded={false} onClick={toggle} className="h-7 rounded-full px-2.5 text-caption text-a-acc transition-colors duration-150 hover:bg-a-p2">
+            <button type="button" aria-expanded={false} onClick={toggle} className="h-7 rounded-full px-2.5 text-caption text-a-acc transition-colors duration-150 hover:bg-a-p2 pointer-coarse:h-11">
               {total === 1 ? t("1 Änderung") : t("{n} Änderungen", { n: total })} ▾
             </button>
           )}
@@ -214,7 +214,7 @@ export function SinceCard({ className, collapsible = false, place = "default" }:
             ))}
           </div>
           {collapsible && (
-            <button type="button" aria-expanded onClick={toggle} className="h-7 rounded-full px-2.5 text-caption text-a-acc transition-colors duration-150 hover:bg-a-p2">
+            <button type="button" aria-expanded onClick={toggle} className="h-7 rounded-full px-2.5 text-caption text-a-acc transition-colors duration-150 hover:bg-a-p2 pointer-coarse:h-11">
               {t("Zuklappen")} ▴
             </button>
           )}

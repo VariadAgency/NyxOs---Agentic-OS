@@ -99,7 +99,7 @@ export function EngineNotice({ status, onRetry, where, className }: { status: Ha
       {state === "off" &&
         (where === "panel" ? (
           <div>
-            <Link to="/einstellungen/haiku" className={cn(button, "inline-block")}>
+            <Link to="/einstellungen/nyx/motor" className={cn(button, "inline-block")}>
               {t("In Einstellungen einschalten")}
             </Link>
           </div>

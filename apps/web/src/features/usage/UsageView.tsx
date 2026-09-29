@@ -19,6 +19,7 @@ import { UsageSettingsSheet, useUsageSettings } from "./UsageSettingsSheet";
 import { formatTokensCompact, formatTokensFull, formatUsd } from "./format";
 import { EmptyLine, modelColor, Panel, Segmented } from "./parts";
 import { sessionLabel } from "../../lib/sessionLabel";
+import { ModelName } from "../../lib/modelName";
 
 const RANGES: { value: Range; label: string; days: number | null }[] = [
   { value: "7", label: t("7 Tage"), days: 7 },
@@ -174,7 +175,7 @@ export function UsageView() {
             type="button"
             aria-expanded={settingsOpen}
             onClick={() => toggleSettings(!settingsOpen)}
-            className={cn("inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-caption transition-colors duration-150", settingsOpen ? "border-a-acc/60 bg-a-acc/10 text-a-ink" : "border-a-line bg-a-p text-a-mut hover:text-a-ink")}
+            className={cn("inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-caption transition-colors duration-150 pointer-coarse:min-h-11", settingsOpen ? "border-a-acc/60 bg-a-acc/10 text-a-ink" : "border-a-line bg-a-p text-a-mut hover:text-a-ink")}
           >
             <span aria-hidden>⚙</span>
             {t("Nutzung einstellen")}
@@ -191,7 +192,7 @@ export function UsageView() {
             {dayDetail.map((p) => (
               <div key={`${p.tool}-${p.model}-${p.project}`} className="grid grid-cols-[10px_minmax(0,1fr)_auto_88px] items-center gap-3 border-b border-a-line py-1.5 last:border-0">
                 <span className="h-2.5 w-2.5 rounded-[3px]" style={{ background: p.tool === "claude" ? "var(--a-claude)" : "var(--a-codex)" }} />
-                <span className="truncate text-a-ink">{p.model}</span>
+                <ModelName id={p.model} className="truncate text-a-ink" />
                 <span className="font-mono tabular-nums text-a-mut">{formatTokensFull(p.totalTokens)}</span>
                 <span className="text-right font-mono tabular-nums text-a-mut">{formatUsd(p.cost)}</span>
               </div>
@@ -344,7 +345,7 @@ function ModelsPanel({ models, rangeLabel, onOpen }: { models: ModelUsage[]; ran
                     className="grid w-full grid-cols-[10px_minmax(0,1fr)_auto] items-center gap-x-2.5 gap-y-1 rounded-lg px-2 py-1.5 text-left text-callout transition-colors duration-150 hover:bg-a-p2"
                   >
                     <span className="h-2.5 w-2.5 rounded-[3px]" style={{ background: m.color }} />
-                    <span className="truncate text-a-ink">{m.model}</span>
+                    <ModelName id={m.model} className="truncate text-a-ink" />
                     <span className="font-mono text-caption tabular-nums text-a-mut">
                       {share < 1 ? "<1" : Math.round(share)} % · {formatTokensCompact(m.totalTokens)}
                     </span>

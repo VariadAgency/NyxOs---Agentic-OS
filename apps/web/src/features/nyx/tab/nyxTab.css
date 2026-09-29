@@ -156,8 +156,8 @@
 .nyx-menu {
   display: none;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 13px;
   color: var(--a-ink);
   transition: border-color 160ms ease, transform 160ms ease;
@@ -367,6 +367,10 @@
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
+  /* Kein iOS-Menü „Kopieren/Teilen“ beim Gedrückthalten. */
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
   transition: transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1), color 300ms ease, background 300ms ease, border-color 300ms ease;
 }
 .nyx-mic .nyx-icon { width: 28px; height: 28px; }
@@ -424,6 +428,12 @@
 }
 .nyx-ask__send:disabled { opacity: 0.3; }
 .nyx-ask__send .nyx-icon { width: 15px; height: 15px; }
+/* On touch the input was only 24 px high (tapping the pill's edge hit nothing) and send was 32 px. */
+@media (pointer: coarse) {
+  .nyx-ask { padding: 4px 4px 4px 14px; }
+  .nyx-ask__input { align-self: stretch; min-height: 44px; }
+  .nyx-ask__send { width: 44px; height: 44px; }
+}
 
 /* ── Rechte Leiste ── */
 .nyx-panel {
@@ -453,6 +463,14 @@
   border-radius: 13px;
   color: var(--a-mut);
   transition: color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+/* Thumb-sized (44 px) on touch devices. */
+@media (pointer: coarse) {
+  .nyx-rail__toggle,
+  .nyx-rail__tab {
+    width: 44px;
+    height: 44px;
+  }
 }
 .nyx-rail__toggle { border: 1px solid var(--nyx-glass-line); background: var(--nyx-glass); }
 .nyx-rail__toggle:hover,

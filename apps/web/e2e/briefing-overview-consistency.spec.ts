@@ -71,8 +71,8 @@ test("keine uralten „abgestürzt“ — alles Abgestürzte ist jünger als die
   const ov = (await (await request.get("/api/overview")).json()) as Overview;
   expect(ov.criticalSessions.filter((c) => c.reason === "abgestürzt")).toHaveLength(ov.counts.crashed);
 
-  await page.goto("/settings");
-  const panel = page.getByRole("region", { name: "Sessions" });
+  await page.goto("/settings/sessions");
+  const panel = page.getByRole("region", { name: "Abgestürzte Sessions" });
   await expect(panel).toBeVisible({ timeout: 60_000 });
   await expect(panel.getByLabel(/abgestürzt/)).toHaveValue(String(settings.crashedMaxHours));
   await panel.scrollIntoViewIfNeeded();

@@ -13,6 +13,10 @@ import { ARCHIVE_HEADERS, ArchiveMetaSchema, codexSessionIdFromPath, EntrySource
 import { eq, sql } from "drizzle-orm";
 import { Hono, type MiddlewareHandler } from "hono";
 import { bodyLimit } from "hono/body-limit";
+import { findVersion } from "./app-info/version.js";
+import { registerSupportRoutes } from "./routes/support.js";
+import { RecentErrors } from "./support/recent-errors.js";
+import { SupportService, type SupportServiceDeps } from "./support/service.js";
 import { ArchiveError, storeArchive } from "./archive.js";
 import { BridgeBuildRunner } from "./builds/bridgeRunner.js";
 import { notifyBuildDone } from "./builds/notify.js";
@@ -22,6 +26,7 @@ import { queueBuildsForStopSignals, stopSignalsFromBatch } from "./builds/watche
 import { registerAgentsRoutes } from "./routes/agents.js";
 import { registerSkillsRoutes, type SkillsRouteOptions } from "./routes/skills.js";
 import { registerSessionPanelsRoutes } from "./routes/session-panels.js";
+import { registerSessionAgentsRoutes } from "./routes/session-agents.js";
 import { DigestService } from "./session-digest.js";
 import { registerUsageRoutes } from "./routes/usage.js";
 import { seedPrices } from "./usage/pricing.js";
@@ -45,6 +50,8 @@ import { registerHaikuRoutes, remoteEngine, type HaikuRouteOptions } from "./rou
 import { registerModelsRoutes, type ModelsRouteDeps } from "./routes/models.js";
 import { registerNyxTabRoutes } from "./routes/nyx-tab.js";
 import { NyxUiBridge, registerNyxUiRoutes, registerNyxUiTools } from "./nyx/ui.js";
+// NyxOS-Karte (automatisch aus dem Code) – Werkzeug nyxos_karte.
+import { registerNyxosMapTool } from "./nyx/map/index.js";
 // Nyx bedient ganz NyxOS über die eigene API (Werkzeuge app_api / app_api_katalog).
 import { AppApiService, registerAppApiTools } from "./nyx/appApi/service.js";
 // Verbindungs-Prüfung (Logik in ./connections/).
@@ -64,11 +71,19 @@ import { loadOrInitSettings } from "./push/settings.js";
 import { checkWaitingSessions } from "./push/waiting.js";
 import { AwayService } from "./away/service.js";
 import { registerAwayRoutes } from "./routes/away.js";
+import { FocusService } from "./focus/service.js";
+import { registerFocusRoutes } from "./routes/focus.js";
+// Shared notification pipeline (when? text? Nyx?) + settings page "Mitteilungen".
+import { NotifyHold, type NotifyEnv } from "./notifications/pipeline.js";
+import type { NyxRunner } from "./notifications/nyx.js";
+import { registerNotificationRoutes } from "./routes/notifications.js";
 import { checkUsageWarnings } from "./usage/warnings.js";
 import { createAuth, type AuthOptions } from "./terminal/auth.js";
 import { BridgeHub } from "./terminal/bridgeHub.js";
 import { BridgePresence } from "./bridge/presence.js";
 import { registerBridgePresenceRoutes } from "./routes/bridge-presence.js";
+import { HostingService, type HostingDeps } from "./hosting/service.js";
+import { registerHostingRoutes } from "./routes/hosting.js";
 // PG „Gehirn": Graph-API (eigene Datei).
 import { GraphService } from "./graph/service.js";
 import { dbEntriesProvider } from "./graph/sources/entries.js";
@@ -84,6 +99,7 @@ import { registerFinderRoutes } from "./routes/finder.js";
 import { registerAuditRoutes } from "./routes/audits.js";
 import { flushDeliveries, deliverOrQueue, type DeliveryDeps } from "./delivery/queue.js";
 import { registerDeliveryRoutes } from "./delivery/routes.js";
+import { registerSessionControlRoutes } from "./session-controls/routes.js";
 // Suche, eigener Block (siehe apps/server/src/search.ts).
 import { indexChatDocs, search } from "./search.js";
 import { searchAll } from "./search-all.js";
@@ -127,6 +143,8 @@ import { getSessionTranscript, loadPromptImage, TranscriptCache, TRANSCRIPT_DEFA
 import { registerSessionChatRoutes } from "./routes/session-chat.js";
 import { registerPromptAssistRoutes } from "./routes/prompt-assist.js";
 import { registerSessionAuditRoutes } from "./routes/session-audit.js";
+// „Nyx fasst zusammen“ (ausführliche Session-Zusammenfassung).
+import { registerSessionSummaryRoutes } from "./routes/session-summary.js";
 // Telegram-Bot (Long-Polling, kein Port) + Einstellungen → Telegram.
 import { registerTelegramRoutes } from "./routes/telegram.js";
 import { startTerminalSession } from "./routes/terminal.js";
@@ -265,6 +283,9 @@ export interface AppDeps {
   skills?: SkillsRouteOptions;
   /** Abwesenheit: Tests stellen die Uhr (Anwesenheit, Bündelung, Ruhezeit). */
   away?: { now?: () => number };
+  /** Betrieb & Zugriff. `mode` defaults to `appInfo.mode` (dev.ts sets "probe"); tests replace network, clock,
+   * computer name and the check's time limit. */
+  hosting?: Partial<Pick<HostingDeps, "mode" | "hostnameFile" | "hostName" | "fetchImpl" | "policy" | "checkTimeoutMs" | "now">>;
   /** Demo instance only (`appInfo.demo`): how Nyx answers and the way back to the real installation. */
   demo?: { engine: DemoEngineKind; homeUrl: string | null };
   /** Local mode: starts the demo instance for "Demo ansehen" (default: same program, NYXOS_HOME, NYXOS_DEMO_PORT). */
@@ -272,6 +293,8 @@ export interface AppDeps {
   /** Local mode (not the demo): the voice pack on this computer (`nyxos voice install`). Its `backend` is the
    * voice service; routes add the install button and sentences without Docker. */
   voicePack?: LocalVoicePack;
+  /** Feedback & Unterstützen — tests set a fake support service (`fetch`), the environment, DNS and the clock. */
+  support?: Partial<Pick<SupportServiceDeps, "fetch" | "env" | "resolve" | "now" | "defaultUrl">>;
 }
 
 // Exportiert: die `register*Routes`-Helfer (routes/push|voice|builds|night|terminal.ts) tippen ihr
@@ -294,10 +317,27 @@ export function createApp(deps: AppDeps) {
   const { db, archiveDir } = deps;
   const hub = deps.hub ?? new LiveHub();
   if (deps.livePingMs !== 0 && hub instanceof LiveHub) hub.heartbeat(deps.livePingMs ?? 25_000);
-  const log = deps.log ?? (() => {});
+  // Every log line also feeds the last few server errors for „Diagnose anhängen“ (support/recent-errors.ts).
+  const supportErrors = new RecentErrors();
+  const baseLog = deps.log ?? (() => {});
+  const log = (msg: string, extra?: Record<string, unknown>) => {
+    supportErrors.note(msg, extra);
+    baseLog(msg, extra);
+  };
   // Everything started without `await` (ingest follow-ups, seeds at start) runs through here, so
   // `background.idle()` can wait for it before the database is closed (see background.ts).
   const background = new BackgroundTasks();
+  // Feedback & Unterstützen (support/service.ts): outbox, forwarding, payment page. The origin of the support service
+  // is loaded once at start so the page's `frame-src` knows it (the middleware below reads it synchronously).
+  const supportService = new SupportService({
+    db,
+    log,
+    version: deps.appInfo?.version ?? findVersion(),
+    mode: deps.appInfo?.mode ?? "unknown",
+    errors: supportErrors,
+    ...deps.support,
+  });
+  background.run(supportService.target());
   const transcriptCache = deps.transcriptCache ?? new TranscriptCache();
   // eigener, größerer Cache nur für Sub-Agent-Verläufe (Anzahl-Badge + expliziter
   // Abruf) — verdrängt nie den 8er-Cache des Hauptverlaufs, s. transcript.ts.
@@ -340,6 +380,27 @@ export function createApp(deps: AppDeps) {
     },
   });
 
+  // Betrieb & Zugriff (hosting/service.ts): before the host guard, which reports every access through an outside address.
+  const hostingMode = deps.hosting?.mode ?? deps.appInfo?.mode ?? "server";
+  const hosting = new HostingService({
+    db,
+    mode: hostingMode,
+    // Local/probe: the port of this server; server mode: the port published on the server (infra/.env NYXOS_PORT).
+    port: (hostingMode === "server" ? Number(process.env.NYXOS_PORT) : Number(process.env.PORT)) || 47800,
+    allowedHosts,
+    authReads: auth.authReads,
+    presence: bridgePresence,
+    secrets: new SecretStore(db),
+    archiveDir,
+    hostnameFile: deps.hosting?.hostnameFile === undefined ? process.env.NYXOS_HOST_HOSTNAME?.trim() || null : deps.hosting.hostnameFile,
+    ...(deps.hosting?.hostName !== undefined ? { hostName: deps.hosting.hostName } : {}),
+    fetchImpl: deps.hosting?.fetchImpl,
+    policy: deps.hosting?.policy,
+    checkTimeoutMs: deps.hosting?.checkTimeoutMs,
+    now: deps.hosting?.now,
+    log,
+  });
+
   // F3/F5/Nachtmodus: eigene Bereiche, Registrierung unten je eine Zeile.
   // `deps.pushSender` ist nur noch der ntfy-Transport; jede Mitteilung geht über den Mehr-Wege-Sender an
   // Mac (Brücke), Browser (Live) und iPhone (ntfy: eigener Dienst oder ntfy.sh — Token nie an ntfy.sh).
@@ -348,19 +409,43 @@ export function createApp(deps: AppDeps) {
   const ntfyTransport = (target: NtfyTarget) => (target === "ntfy_sh" ? publicNtfy : ownNtfy);
   // Abwesenheit: Ereignisse gebündelt NUR über ntfy (roher Transport, nie Mac/Browser), Fragen über Telegram.
   // `telegram` entsteht weiter unten – die Aufrufe laufen erst im Takt, also nach dem Aufbau.
+  // Environment of the notification pipeline. Nyx' runtime and the multi-channel sender are created further down –
+  // they are read only on the first occasion (tick/ingest), i.e. after setup.
+  let nyxRunner: NyxRunner | null = null;
+  const notifyHold = new NotifyHold();
+  // Focus button: same clock as the away service (tests), changes go live to all open windows.
+  const focusNow = deps.away?.now ?? Date.now;
+  const focus = new FocusService({ db, now: focusNow, broadcast: (m) => hub.broadcast(m), log });
+  background.run(focus.load().catch(() => {}));
+  const notifyEnv: NotifyEnv = {
+    isAway: () => away.isAwayNow(),
+    focus: () => focus.mode(),
+    enqueueAway: (e) => away.notifier.enqueue(e),
+    telegramCoversApprovals: () => telegramCoversApprovals,
+    telegramCoversSessionQuestions: () => telegramCoversSessionQuestions,
+    runtime: () => nyxRunner,
+    hold: notifyHold,
+    log,
+  };
   const away = new AwayService({
     db,
     ntfy: ntfyTransport,
     telegram: { ready: () => telegram.canNotify(), sendQuestions: (qs) => telegram.sendQuestions(qs) },
     log,
     now: deps.away?.now,
+    pipeline: { sender: () => pushSender, env: () => notifyEnv },
+    focus: () => focus.mode(),
   });
   background.run(away.settings().catch(() => {})); // Zwischenspeicher für `ntfyAllowed` füllen
   /** Schickt Telegram Freigaben selbst als Karte (gekoppelt + „Freigaben melden“)? Im Abwesenheits-Takt aufgefrischt. */
   let telegramCoversApprovals = false;
+  /** Fragt Telegram bei Abwesenheit selbst nach wartenden Sessions? (gekoppelt + Abwesenheit an + „Fragen“ an) */
+  let telegramCoversSessionQuestions = false;
   const refreshTelegramCoverage = async () => {
     const st = await loadTelegramState(db);
     telegramCoversApprovals = !!st.chatId && settingsOf(st).notifyApprovals;
+    const awaySettings = await away.settings();
+    telegramCoversSessionQuestions = !!st.chatId && (awaySettings.enabled || focus.mode() === "away") && awaySettings.events.questions;
   };
   // Bewusst NICHT beim Start abfragen (erst im Minuten-Takt): eine Abfrage, die beim Beenden noch läuft, ließ die
   // Test-Datenbank (PGlite) endlos rechnen. Bis dahin gilt „nicht abgedeckt“ – eine Freigabe kommt eher doppelt als gar nicht.
@@ -386,7 +471,7 @@ export function createApp(deps: AppDeps) {
     new BuildQueue(db, new BridgeBuildRunner(bridgeHub), async (event: BuildDoneEvent) => {
       if (event.status !== "red") return;
       try {
-        await notifyBuildDone(db, event, async (input) => notify(input, { db, sender: pushSender, settings: await loadOrInitSettings(db) }));
+        await notifyBuildDone(db, event, async (input) => notify({ ...input, what: input.message }, { db, sender: pushSender, settings: await loadOrInitSettings(db), env: notifyEnv }));
       } catch (e) {
         log("push-build-fehler", { error: String(e) });
       }
@@ -408,7 +493,12 @@ export function createApp(deps: AppDeps) {
     try {
       const h = c.res.headers;
       if (!h.has("x-frame-options")) h.set("x-frame-options", "SAMEORIGIN");
-      if (!h.has("content-security-policy")) h.set("content-security-policy", "frame-ancestors 'self'");
+      // Pages (HTML) may frame only NyxOS itself and the payment page of the support service („Buy me Tokens“).
+      if (!h.has("content-security-policy")) {
+        const html = (h.get("content-type") ?? "").includes("text/html");
+        const support = supportService.frameOrigin();
+        h.set("content-security-policy", html ? `frame-ancestors 'self'; frame-src 'self'${support ? ` ${support}` : ""}` : "frame-ancestors 'self'");
+      }
       if (!h.has("x-content-type-options")) h.set("x-content-type-options", "nosniff");
       if (!h.has("referrer-policy")) h.set("referrer-policy", "same-origin");
     } catch {
@@ -434,6 +524,8 @@ export function createApp(deps: AppDeps) {
     // ein fehlender Host ist also kein DNS-Rebinding-Vektor — nur ein VORHANDENER, falscher.
     const host = c.req.header("host");
     if (host !== undefined && !isAllowedHost(host, allowedHosts)) return c.text("Unbekannter Host", 421);
+    // Access through an allowed outside address (Tailscale/domain) = proof „reachable from the phone“.
+    hosting.observe(host, c.req.header("user-agent"));
 
     // `/live` trägt Session-Nachrichten für ALLE offenen Sessions — die grobe
     // Loopback-Erlaubnis oben (jeder Port auf 127.0.0.1/localhost) reicht hier NICHT: eine beliebige
@@ -540,7 +632,7 @@ export function createApp(deps: AppDeps) {
     // derselben Kette, damit Wächter und Warteschlange nie gleichzeitig in dieselbe Session tippen.
     const touched = [...outcome.touched];
     background.run(
-      runContextGuardForSessions({ db, hub, bridgeHub, pushSender, getContextPct, log }, touched)
+      runContextGuardForSessions({ db, hub, bridgeHub, pushSender, getContextPct, log, notifyEnv }, touched)
         .catch((e) => {
           log("kontext-waechter-ingest-fehler", { error: String(e) });
         })
@@ -879,6 +971,8 @@ export function createApp(deps: AppDeps) {
   registerAuditRoutes(app, { db, bridgeHub });
   // Zustell-Warteschlange je Session sehen/zurückziehen.
   registerDeliveryRoutes(app, deliveryDeps);
+  // Session-Steuerung (Modell, Denkaufwand) – Befehle nur über die Zustellung.
+  registerSessionControlRoutes(app, deliveryDeps);
 
   app.get("/api/machines", async (c) => {
     const rows = await db.select({ id: machines.id, name: machines.name, lastSeenAt: machines.lastSeenAt }).from(machines);
@@ -886,7 +980,7 @@ export function createApp(deps: AppDeps) {
   });
 
   // Push, Sprache, Build-Wächter, Nachtmodus-Einstellungen — je eine Zeile.
-  registerPushRoutes(app, { db, sender: pushSender, ntfyPublicUrl: process.env.NTFY_PUBLIC_URL?.trim() || null });
+  registerPushRoutes(app, { db, sender: pushSender, ntfyPublicUrl: process.env.NTFY_PUBLIC_URL?.trim() || null, notifyEnv });
   // Stimmen-Dienst (Container nyx-voice) — Standard für jede Erkennung, Brücke als Rückfall.
   const nyxVoiceRaw = deps.voice?.nyx !== undefined ? deps.voice.nyx : (deps.voicePack?.backend ?? nyxVoiceBackendFromEnv());
   // alle Sprecher (Tab, Begleiter, Telegram) gehen über die Einstellungen (Aussprache-Wörterbuch, ElevenLabs).
@@ -912,6 +1006,7 @@ export function createApp(deps: AppDeps) {
     hub,
     machineAuth: tokenAuth,
     pushSender,
+    notifyEnv,
     log,
     // nie blind tippen — sofort nur, wenn Hook UND Bildschirm „wartet“ sagen, sonst zustellen, sobald sie wartet.
     tellSession: async (sessionKey, text) => {
@@ -952,6 +1047,8 @@ export function createApp(deps: AppDeps) {
     ...deps.haiku,
   });
   registerIdeaLinkRoutes(app, { db, log, haiku, allowedHosts });
+  nyxRunner = haiku;
+  registerNotificationRoutes(app, { db, away, runtime: () => nyxRunner, nyxReady: async () => (await haiku.preflight("mitteilung", "nyx.chat", { budget: false })) === null, log });
   // Modelle, Konnektoren, Geheimnisse (Logik in ./models, ./mcp, ./secrets) – hängt sich in den Nyx-Motor ein.
   const modelsApi = registerModelsRoutes(app, { db, log, bridgeHub, runtime: haiku, remote: deps.haiku?.remoteEngine ?? remoteEngine, allowedHosts: deps.allowedHosts, ...deps.models });
   // Demo: Nyx only reads (tool allow-list, applies to tools registered below too) and knows it is a demo. Without
@@ -1003,6 +1100,7 @@ export function createApp(deps: AppDeps) {
   });
   registerTelegramRoutes(app, telegram);
   registerAwayRoutes(app, { db, away });
+  registerFocusRoutes(app, { focus, now: focusNow });
   registerAccessRoutes(app, new AccessService({ models: modelsApi.models, secrets: modelsApi.secrets, telegram, connectors: modelsApi.connectors, env: deps.models?.env, fetchImpl: deps.models?.fetchImpl }), log);
   // Nyx meldet sich von selbst auch über Telegram (Erinnerungen, geplante Aufgaben).
   haiku.nyx?.notifier.registerChannel("telegram", async (m) => {
@@ -1015,6 +1113,7 @@ export function createApp(deps: AppDeps) {
   // Nyx steuert NyxOS (Vertrag `nyx.ui`) – Werkzeuge im Haiku-Kasten + Antwort-Rückweg.
   const nyxUi = new NyxUiBridge({ hub, log });
   registerNyxUiTools(haiku.tools, nyxUi);
+  registerNyxosMapTool(haiku.tools);
   registerAppApiTools(haiku.tools, appApi);
   registerNyxUiRoutes(app, { bridge: nyxUi });
   registerNightRoutes(app, {
@@ -1050,6 +1149,8 @@ export function createApp(deps: AppDeps) {
   // Skill-Bibliothek (Kacheln, Verlauf, Vorschläge von Nyx, Opus-Aufträge) – routes/skills.ts.
   const skillService = registerSkillsRoutes(app, { db, bridgeHub, runtime: haiku, log, notify: () => hub.broadcast({ type: "skills" }), ...deps.skills });
   registerSessionPanelsRoutes(app, { db, digests });
+  // Agents in the session chat (live list, detail, hide, add to tasks) – routes/session-agents.ts.
+  registerSessionAgentsRoutes(app, { db, digests, hub, graph });
 
   // PG „Gehirn": Graph-API + `/ingest/vault`. Wie bei Git und Nutzung:
   // `/ingest/vault` braucht das Maschinen-Token (`tokenAuth`), nicht die Passkey-Sitzung — die
@@ -1105,11 +1206,15 @@ export function createApp(deps: AppDeps) {
     },
   });
   registerBridgePresenceRoutes(app, { db, presence: bridgePresence });
+  registerHostingRoutes(app, hosting); // Betrieb & Zugriff
   // aus dem Session-Chat schreiben (mit Anhang) + „Session zusammenfassen & prüfen“.
   registerSessionChatRoutes(app, { db, bridgeHub, hub, log });
   registerSessionAuditRoutes(app, { db, hub, runtime: haiku, cache: transcriptCache, log });
+  registerSessionSummaryRoutes(app, { db, hub, runtime: haiku, cache: transcriptCache, log });
   // „Prompt verbessern“ (Sonnet 5 · Reasoning hoch) neben der Chat-Eingabe.
   registerPromptAssistRoutes(app, { db, runtime: haiku, cache: transcriptCache, digests, log });
+  // Feedback & Unterstützen: Fehler melden, Idee an den Entwickler, Buy me Tokens (nur Open-Source-Fassung).
+  registerSupportRoutes(app, supportService, background);
 
   // Echte Web-App-Dateien zuerst (Assets); alles andere fällt unten durch.
   // Cache-Kopf je Dateiart (s. `staticCacheControl`), damit Dock-App/Home-Bildschirm nach einem
@@ -1153,19 +1258,41 @@ export function createApp(deps: AppDeps) {
   /** Server-Ticker: erkennt „ruht" nach 30 Min Stille, ohne dass ein neues Ereignis eintrifft.
    * derselbe 60-s-Takt prüft "wartet auf dich seit ≥ waitingAfterSeconds" mit (kein
    * eigenes Intervall nötig, s. `push/waiting.ts`). */
+  /** With Nyx checks a tick can take longer than 60 s – never two at the same time. */
+  let ticking = false;
   async function tickStates(now = Date.now()): Promise<string[]> {
+    if (ticking) {
+      log("takt-uebersprungen", { grund: "voriger Takt läuft noch" });
+      return [];
+    }
+    ticking = true;
+    try {
+      return await tickOnce(now);
+    } finally {
+      ticking = false;
+    }
+  }
+
+  async function tickOnce(now: number): Promise<string[]> {
     const changed = await retickIdleStates(db, now);
     await publish(new Set(changed));
     try {
       const settings = await loadOrInitSettings(db);
-      await checkWaitingSessions(db, pushSender, settings, new Date(now));
+      await checkWaitingSessions(db, pushSender, settings, new Date(now), notifyEnv);
     } catch (e) {
       log("push-warte-fehler", { error: String(e) });
     }
     // Abwesenheit: neue Ereignisse/Fragen einsammeln; nur wenn der Nutzer weg ist, gebündelt nach ntfy bzw. Telegram.
     try {
+      // Expired focus → back to auto (before the away tick, so it sees the new state).
+      await focus.tick().catch((e: unknown) => log("fokus-takt-fehler", { error: String(e) }));
       await refreshTelegramCoverage().catch(() => {});
       await away.tick();
+      // What Nyx wanted to "bundle with the next one": after the digest interval as ONE notification.
+      if (notifyHold.size > 0) {
+        const bundleMs = (await away.settings()).bundleMinutes * 60_000;
+        await notifyHold.flush({ db, sender: pushSender, settings: await loadOrInitSettings(db), env: notifyEnv, now: new Date(now), afterMs: bundleMs });
+      }
     } catch (e) {
       log("abwesend-takt-fehler", { error: String(e) });
     }
@@ -1180,13 +1307,13 @@ export function createApp(deps: AppDeps) {
     }
     // Warnschwellen der Nutzung (Tagesverbrauch, 5-Std-Fenster) im selben Takt.
     try {
-      await checkUsageWarnings(db, pushSender, await loadOrInitSettings(db), new Date(now));
+      await checkUsageWarnings(db, pushSender, await loadOrInitSettings(db), new Date(now), undefined, notifyEnv);
     } catch (e) {
       log("nutzung-warn-fehler", { error: String(e) });
     }
     // Kontext-Wächter läuft im selben 60-s-Takt mit (kein eigenes Intervall nötig).
     try {
-      await runContextGuardTicker({ db, hub, bridgeHub, pushSender, getContextPct, log });
+      await runContextGuardTicker({ db, hub, bridgeHub, pushSender, getContextPct, log, notifyEnv });
     } catch (e) {
       log("kontext-waechter-ticker-fehler", { error: String(e) });
     }
@@ -1195,6 +1322,12 @@ export function createApp(deps: AppDeps) {
       await flushDeliveries(deliveryDeps);
     } catch (e) {
       log("zustellung-fehler", { error: String(e) });
+    }
+    // Postausgang „Feedback & Unterstützen“: wartende Meldungen gehen raus, sobald die Meldestelle erreichbar ist.
+    try {
+      await supportService.flush();
+    } catch (e) {
+      log("support-postausgang-fehler", { error: String(e) });
     }
     // Skill-Nutzung einlesen, Signale prüfen, Vorschläge von Nyx (zuletzt – Nyx darf dauern).
     try {
@@ -1207,6 +1340,7 @@ export function createApp(deps: AppDeps) {
 
   return {
     app,
+    hosting,
     injectWebSocket,
     hub,
     tickStates,
@@ -1223,7 +1357,9 @@ export function createApp(deps: AppDeps) {
     modelsApi,
     telegram,
     away,
+    focus,
     appApi,
+    support: supportService,
     /** Demo instance: time of the last request (idle shutdown in local.ts). */
     demoLastRequestAt: () => demoLastRequestAt,
     /** Local instance: ends a running demo child (server shutdown). */

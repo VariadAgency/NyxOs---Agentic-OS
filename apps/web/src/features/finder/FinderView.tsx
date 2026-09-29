@@ -8,6 +8,7 @@
 import { t, type FinderEntry } from "@nyxos/shared";
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { Link } from "react-router";
+import { matchesQuery, PHONE_QUERY, useTouch } from "../../hooks/useMediaQuery";
 import { cn } from "../../lib/cn";
 import { FilesView } from "../files/FilesView";
 import { parentOf } from "./api";
@@ -58,7 +59,9 @@ export function FinderBrowser({ nav }: { nav: FinderNav }) {
   const open = params.get("open");
   const qParam = params.get("q") ?? "";
 
-  const [view, setView] = usePref<FinderViewMode>(`${src.prefPrefix}.view`, src.defaultView, isViewMode);
+  // Auf dem Handy passt die Spalten-Ansicht nicht – dort startet die Liste (eigene Wahl bleibt gespeichert).
+  const [view, setView] = usePref<FinderViewMode>(`${src.prefPrefix}.view`, matchesQuery(PHONE_QUERY) ? "liste" : src.defaultView, isViewMode);
+  const touch = useTouch();
   const [sort, setSort] = usePref<SortSpec>(`${src.prefPrefix}.sort`, { by: "name", dir: "asc" }, isSortSpec);
   const [showHidden, setShowHidden] = usePref<boolean>(`${src.prefPrefix}.hidden`, false, (v) => typeof v === "boolean");
   const [widths, setWidths] = usePref<number[]>(`${src.prefPrefix}.columnWidths`, [], isWidths);
@@ -251,7 +254,7 @@ export function FinderBrowser({ nav }: { nav: FinderNav }) {
             <h1 className="min-w-0 flex-1 truncate font-display text-headline font-semibold text-a-ink">{dir ? dir.split("/").pop() : rootLabel}</h1>
             <div role="group" aria-label={t("Darstellung")} className="inline-flex rounded-lg border border-a-line p-0.5">
               {VIEW_MODES.map((m) => (
-                <button key={m.id} type="button" aria-pressed={view === m.id} aria-label={m.label} title={m.label} onClick={() => setView(m.id)} className={cn("inline-flex h-[26px] items-center gap-1.5 rounded-md px-2 text-caption", view === m.id ? "bg-a-acc/15 font-medium text-a-acc" : "text-a-mut hover:text-a-ink")}>
+                <button key={m.id} type="button" aria-pressed={view === m.id} aria-label={m.label} title={m.label} onClick={() => setView(m.id)} className={cn("cc-hit inline-flex h-[26px] items-center gap-1.5 rounded-md px-2 text-caption", view === m.id ? "bg-a-acc/15 font-medium text-a-acc" : "text-a-mut hover:text-a-ink")}>
                   <span aria-hidden="true">{m.glyph}</span>
                   <span aria-hidden="true" className="hidden lg:inline">
                     {m.label}
@@ -365,8 +368,7 @@ export function FinderBrowser({ nav }: { nav: FinderNav }) {
           <div className="border-t border-a-line px-3 py-1 text-label text-a-mut">
             {listing.data ? `${listing.entries.length === 1 ? t("1 Objekt") : t("{n} Objekte", { n: listing.entries.length })}${listing.data.truncated ? ` ${t("(gekürzt)")}` : ""}` : ""}
             {listing.data && !listing.data.writable ? ` · ${t("nur lesen")}` : ""}
-            {" · "}
-            {t("Leertaste = Übersicht · Enter = Öffnen")}
+            {!touch && ` · ${t("Leertaste = Übersicht · Enter = Öffnen")}`}
           </div>
         </div>
       )}

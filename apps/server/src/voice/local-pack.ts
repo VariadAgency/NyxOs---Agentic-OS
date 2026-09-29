@@ -21,7 +21,7 @@ import { t, VOICE_PACK_DOWNLOAD_BYTES, VOICE_PACK_STEPS, voicePackErrorSentence,
 import { HttpNyxVoiceBackend, NyxVoiceBackendError, type NyxVoiceBackend, type NyxVoiceRawPart, type NyxVoiceRawStatus } from "../nyx/voice-backend.js";
 
 /** Voices of the local pack: small, fast Piper voices, one per language (no PyTorch needed). */
-export const LOCAL_VOICES = { de: "de_DE-thorsten-medium", en: "en_US-ljspeech-high" } as const;
+export const LOCAL_VOICES = { de: "de_DE-thorsten-high", en: "en_US-ljspeech-high" } as const;
 /** Pauses before restarting a crashed service; a service that ran for a while starts again from the first. */
 export const RESTART_DELAYS_MS = [1_000, 2_000, 5_000, 10_000, 30_000, 60_000];
 const STABLE_AFTER_MS = 120_000;

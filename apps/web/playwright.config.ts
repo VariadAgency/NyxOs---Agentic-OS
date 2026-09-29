@@ -9,6 +9,8 @@ import { defineConfig, devices } from "@playwright/test";
 // server is started. Specs that mock every API call via `page.route` work against either.
 const port = Number(process.env.PROBE_PORT ?? 47890);
 const baseURL = process.env.E2E_BASE_URL ?? `http://127.0.0.1:${port}`;
+/** Phone checks run only in the phone projects (and the desktop checks never there). */
+const MOBILE_SPECS = /(^|\/)mobile\.spec\.ts$/;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -36,9 +38,12 @@ export default defineConfig({
         stderr: "pipe",
       },
   projects: [
-    { name: "chromium-1440", use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } } },
-    { name: "chromium-1024", use: { ...devices["Desktop Chrome"], viewport: { width: 1024, height: 800 } } },
-    { name: "webkit-1440", use: { ...devices["Desktop Safari"], viewport: { width: 1440, height: 900 } } },
-    { name: "webkit-1024", use: { ...devices["Desktop Safari"], viewport: { width: 1024, height: 800 } } },
+    { name: "chromium-1440", testIgnore: MOBILE_SPECS, use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } } },
+    { name: "chromium-1024", testIgnore: MOBILE_SPECS, use: { ...devices["Desktop Chrome"], viewport: { width: 1024, height: 800 } } },
+    { name: "webkit-1440", testIgnore: MOBILE_SPECS, use: { ...devices["Desktop Safari"], viewport: { width: 1440, height: 900 } } },
+    { name: "webkit-1024", testIgnore: MOBILE_SPECS, use: { ...devices["Desktop Safari"], viewport: { width: 1024, height: 800 } } },
+    // Real phone emulation (touch, small width, device pixels) – only for the phone checks.
+    { name: "iphone-13", testMatch: MOBILE_SPECS, use: { ...devices["iPhone 13"] } },
+    { name: "pixel-7", testMatch: MOBILE_SPECS, use: { ...devices["Pixel 7"] } },
   ],
 });

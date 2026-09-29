@@ -37,7 +37,7 @@ export function ApprovalActions({ approval, onToast, onDone, leaveMs = 0 }: Comm
           data-nyx-risk=""
           disabled={decide.isPending || decide.isSuccess}
           onClick={() => run("approve")}
-          className="rounded-lg border border-transparent bg-a-primary px-3.5 py-1.5 text-caption font-semibold text-a-on-primary hover:brightness-110 disabled:opacity-50"
+          className="rounded-lg border border-transparent bg-a-primary px-3.5 py-1.5 text-caption font-semibold text-a-on-primary hover:brightness-110 disabled:opacity-50 max-md:min-h-11 max-md:px-5 max-md:text-callout"
         >
           {t("Freigeben")}
         </button>
@@ -46,7 +46,7 @@ export function ApprovalActions({ approval, onToast, onDone, leaveMs = 0 }: Comm
           data-nyx-risk=""
           disabled={decide.isPending || decide.isSuccess}
           onClick={() => run("deny")}
-          className="rounded-lg border border-a-line bg-a-p2 px-3.5 py-1.5 text-caption text-a-ink hover:bg-a-p3 disabled:opacity-50"
+          className="rounded-lg border border-a-line bg-a-p2 px-3.5 py-1.5 text-caption text-a-ink hover:bg-a-p3 disabled:opacity-50 max-md:min-h-11 max-md:px-5 max-md:text-callout"
         >
           {t("Ablehnen")}
         </button>
@@ -88,8 +88,8 @@ export function QuestionActions({ item, onToast, onDone, leaveMs = 0 }: Common &
               onClick={() => send({ optionId: opt.id })}
               className={cn(
                 "min-w-0 rounded-lg border border-a-line bg-a-p2 text-left text-a-ink transition-colors duration-150 hover:border-a-acc/60 hover:bg-a-p3 disabled:opacity-50",
-                // Normale Knopfhöhe (36 px) statt riesiger Ja/Nein-Flächen.
-                item.yesNo ? "h-9 text-center text-callout font-semibold" : "px-3 py-2 text-callout",
+                // Normale Knopfhöhe (36 px) statt riesiger Ja/Nein-Flächen; auf dem Handy daumengroß (44 px).
+                item.yesNo ? "h-9 text-center text-callout font-semibold max-md:h-11" : "px-3 py-2 text-callout max-md:min-h-11",
               )}
             >
               <span className="block truncate">{opt.label}</span>
@@ -110,7 +110,7 @@ export function QuestionActions({ item, onToast, onDone, leaveMs = 0 }: Common &
           <span className="sr-only">{t("Eigene Antwort zu „{title}“", { title: item.title })}</span>
           <textarea rows={1} value={text} onChange={(e) => setText(e.target.value)} placeholder={t("Eigene Antwort …")} className={cn(FIELD, "min-h-[36px] resize-y")} />
         </label>
-        <button type="submit" data-nyx-risk="" disabled={busy || !text.trim()} className="rounded-lg border border-a-acc/40 bg-a-acc/10 px-3 py-1.5 text-caption text-a-acc disabled:opacity-40">
+        <button type="submit" data-nyx-risk="" disabled={busy || !text.trim()} className="rounded-lg border border-a-acc/40 bg-a-acc/10 px-3 py-1.5 text-caption text-a-acc disabled:opacity-40 max-md:min-h-11">
           {t("Antworten")}
         </button>
         <button
@@ -125,7 +125,7 @@ export function QuestionActions({ item, onToast, onDone, leaveMs = 0 }: Common &
               },
             })
           }
-          className="rounded-lg px-2.5 py-1.5 text-caption text-a-mut hover:bg-a-p2 hover:text-a-ink disabled:opacity-50"
+          className="rounded-lg px-2.5 py-1.5 text-caption text-a-mut hover:bg-a-p2 hover:text-a-ink disabled:opacity-50 max-md:min-h-11"
         >
           {t("Verwerfen")}
         </button>

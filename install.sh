@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # NyxOS installer for macOS and Linux.
 #
-#   curl -fsSL https://raw.githubusercontent.com/OWNER/nyxos/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/VariadAgency/NyxOs---Agentic-OS/main/install.sh | bash
 #
 # What it does (no admin rights needed except for installing tmux via the system package manager):
 #   1. downloads Node.js 24 into ~/.nyxos/runtime (does not touch a system Node)
@@ -21,7 +21,7 @@ set -euo pipefail
 # Everything runs inside main(), called on the last line: with `curl | bash` a download that breaks off
 # half-way then runs nothing (instead of half a script), and commands that read stdin cannot eat the script.
 main() {
-REPO="${NYXOS_REPO:-OWNER/nyxos}"
+REPO="${NYXOS_REPO:-VariadAgency/NyxOs---Agentic-OS}"
 NODE_MAJOR=24
 NYXOS_HOME="${NYXOS_HOME:-$HOME/.nyxos}"
 export NYXOS_HOME

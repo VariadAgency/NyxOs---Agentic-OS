@@ -2,13 +2,14 @@
 // Mac"). Läuft im bestehenden 60-s-Ticker mit (s. app.ts `tickStates`/`retickIdleStates`), braucht
 // also kein eigenes Intervall. Dedupe: pro Warte-Episode (identifiziert durch `stateObservedAt`,
 // den Zeitpunkt des letzten Zustandswechsels) höchstens eine Mitteilung.
-import { sessionLabel, t, type PushSettings } from "@nyxos/shared";
+import { t, type PushSettings } from "@nyxos/shared";
 import { and, eq, gte, lt } from "drizzle-orm";
 import type { Db } from "../db/client.js";
 import { pushLog, sessions } from "../db/schema.js";
 import { notify } from "./dispatcher.js";
 import type { NtfySender } from "./ntfy.js";
 import { countedSession } from "../db/visible.js";
+import type { NotifyEnv } from "../notifications/pipeline.js";
 
 export function sessionPath(row: { id: string; sessionId: string; categoryArt: string | null; categoryBaustelleSlug: string | null }): string {
   const art = row.categoryArt ?? "unsortiert";
@@ -16,7 +17,7 @@ export function sessionPath(row: { id: string; sessionId: string; categoryArt: s
   return `/sessions/${art}/${baustelle}/${row.sessionId}`;
 }
 
-export async function checkWaitingSessions(db: Db, sender: NtfySender, settings: PushSettings, now = new Date()): Promise<string[]> {
+export async function checkWaitingSessions(db: Db, sender: NtfySender, settings: PushSettings, now = new Date(), env?: NotifyEnv): Promise<string[]> {
   if (settings.waitingAfterSeconds < 0) return [];
   const threshold = new Date(now.getTime() - settings.waitingAfterSeconds * 1000).toISOString();
   const rows = await db
@@ -33,6 +34,7 @@ export async function checkWaitingSessions(db: Db, sender: NtfySender, settings:
       categoryArt: sessions.categoryArt,
       categoryBaustelleSlug: sessions.categoryBaustelleSlug,
       stateObservedAt: sessions.stateObservedAt,
+      turnObservedAt: sessions.turnObservedAt,
     })
     .from(sessions)
     .where(and(eq(sessions.state, "waiting"), lt(sessions.stateObservedAt, threshold), countedSession));
@@ -47,11 +49,12 @@ export async function checkWaitingSessions(db: Db, sender: NtfySender, settings:
         .limit(1);
       if (already) continue;
     }
-    // derselbe Name wie überall (`sessionLabel`): nie die rohe Kennung, und eine erste Nachricht
-    // steht nur gekürzt (60 Zeichen) auf dem Sperrbildschirm – nicht der ganze Prompt.
+    // Name (never the raw prompt), style and the sub-agent rule come from the pipeline; here only the fact.
+    const since = row.turnObservedAt ?? row.stateObservedAt ?? null;
+    const what = t("wartet auf dich");
     const result = await notify(
-      { kind: "session_waiting", title: t("Wartet auf dich"), message: sessionLabel({ ...row, baustelleLabel: row.categoryBaustelleLabel }), path: sessionPath(row), sessionKey: row.id },
-      { db, sender, settings, now },
+      { kind: "session_waiting", title: t("Wartet auf dich"), message: what, what, at: since, path: sessionPath(row), sessionKey: row.id },
+      { db, sender, settings, now, env },
     );
     if (result.sent) notified.push(row.id);
   }

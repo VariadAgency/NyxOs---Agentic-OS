@@ -71,7 +71,7 @@ export function ModelPicker({ selected, onPick, onClose }: { selected: { provide
                 {first.providerLabel}
                 <span className="font-normal text-a-mut">
                   {t("{n} Modelle", { n: models.length })}
-                  {first.usable ? "" : ` · ${t("Zugang fehlt (Einstellungen → Zugänge)")}`}
+                  {first.usable ? "" : ` · ${t("Zugang fehlt (Einstellungen → Zugänge & Schlüssel)")}`}
                 </span>
               </h4>
               <ul className="grid gap-1">

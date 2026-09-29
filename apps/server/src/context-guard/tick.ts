@@ -11,6 +11,7 @@ import { COMPACT_TTL_HOURS, deliverOrQueue, dropStaleCompact, type DeliveryRpc }
 import { contextGuardEvents, contextGuardState, sessions } from "../db/schema.js";
 import type { LiveHub } from "../live.js";
 import { notify } from "../push/dispatcher.js";
+import type { NotifyEnv } from "../notifications/pipeline.js";
 import type { NtfySender } from "../push/ntfy.js";
 import { loadOrInitSettings } from "../push/settings.js";
 import { decideContextGuardActions } from "./monitor.js";
@@ -82,6 +83,8 @@ export interface ContextGuardTickDeps {
   isHaiku?: (session: SessionRow) => boolean;
   log: (msg: string, extra?: Record<string, unknown>) => void;
   now?: () => number;
+  /** Notification environment (presence, away digest, Nyx) – without it the user counts as present. */
+  notifyEnv?: NotifyEnv;
 }
 
 function sessionPath(row: Pick<SessionRow, "sessionId" | "categoryArt" | "categoryBaustelleSlug">): string {
@@ -93,14 +96,14 @@ async function loadState(db: Db, sessionKey: string) {
   return row ?? { sessionKey, lastPct: null, hinweisNotifiedAt: null, erzwingenAttemptedAt: null, updatedAt: new Date(0).toISOString() };
 }
 
+/** ONE statement instead of "read, then insert" – two simultaneous checks otherwise failed on the duplicate key
+ * ("duplicate key context_guard_state_pkey"). */
 async function upsertState(db: Db, sessionKey: string, patch: { lastPct?: number | null; hinweisNotifiedAt?: string | null; erzwingenAttemptedAt?: string | null }) {
   const set = { ...patch, updatedAt: new Date().toISOString() };
-  const existing = await db.select({ sessionKey: contextGuardState.sessionKey }).from(contextGuardState).where(eq(contextGuardState.sessionKey, sessionKey)).limit(1);
-  if (existing.length > 0) {
-    await db.update(contextGuardState).set(set).where(eq(contextGuardState.sessionKey, sessionKey));
-  } else {
-    await db.insert(contextGuardState).values({ sessionKey, ...set });
-  }
+  await db
+    .insert(contextGuardState)
+    .values({ sessionKey, ...set })
+    .onConflictDoUpdate({ target: contextGuardState.sessionKey, set });
 }
 
 async function logEvent(db: Db, sessionKey: string, kind: "hinweis" | "erzwingen" | "manuell", pctAtTrigger: number | null, action: string, detail?: Record<string, unknown>) {
@@ -121,6 +124,24 @@ async function tryClaimErzwingen(db: Db, sessionKey: string, at: string): Promis
       target: contextGuardState.sessionKey,
       set: { erzwingenAttemptedAt: at, updatedAt: at },
       setWhere: sql`${contextGuardState.erzwingenAttemptedAt} is null`,
+    })
+    .returning({ sessionKey: contextGuardState.sessionKey });
+  return rows.length > 0;
+}
+
+/**
+ * The same context notice arrived 2–3 times in the same second: the ticker and several ingest batches checked the same
+ * session at once; all read `hinweisNotifiedAt: null` and each sent a notification before one of them wrote the mark.
+ * Now like forcing a compact: the mark is set atomically BEFORE sending, only whoever gets it notifies.
+ */
+async function tryClaimHinweis(db: Db, sessionKey: string, at: string): Promise<boolean> {
+  const rows = await db
+    .insert(contextGuardState)
+    .values({ sessionKey, hinweisNotifiedAt: at, updatedAt: at })
+    .onConflictDoUpdate({
+      target: contextGuardState.sessionKey,
+      set: { hinweisNotifiedAt: at, updatedAt: at },
+      setWhere: sql`${contextGuardState.hinweisNotifiedAt} is null`,
     })
     .returning({ sessionKey: contextGuardState.sessionKey });
   return rows.length > 0;
@@ -155,20 +176,15 @@ export async function checkSession(deps: ContextGuardTickDeps, row: SessionRow, 
   if (decision.resetHinweis) patch.hinweisNotifiedAt = null;
   if (decision.resetErzwingen) patch.erzwingenAttemptedAt = null;
 
-  if (decision.notify) {
-    patch.hinweisNotifiedAt = new Date().toISOString();
+  if (decision.notify && (await tryClaimHinweis(deps.db, row.id, new Date().toISOString()))) {
     changed = true;
     await logEvent(deps.db, row.id, "hinweis", pct, "notified");
     try {
+      // Name, style and "when" come from the pipeline (never the raw prompt as the name any more).
+      const what = t("Kontext {pct} % – Komprimieren empfohlen", { pct });
       await notify(
-        {
-          kind: "context_guard_hinweis",
-          title: t("Kontext-Wächter"),
-          message: t("{title}: Kontext {pct}% – Komprimieren empfohlen", { title: row.title ?? row.sessionId, pct }),
-          path: sessionPath(row),
-          sessionKey: row.id,
-        },
-        { db: deps.db, sender: deps.pushSender, settings: pushSettings },
+        { kind: "context_guard_hinweis", title: t("Kontext fast voll"), message: what, what, path: sessionPath(row), sessionKey: row.id },
+        { db: deps.db, sender: deps.pushSender, settings: pushSettings, now: deps.now ? new Date(deps.now()) : undefined, env: deps.notifyEnv },
       );
     } catch (e) {
       deps.log("context-guard-push-fehler", { sessionKey: row.id, error: String(e) });

@@ -12,6 +12,11 @@ import onboarding from "./onboarding.js";
 import server from "./server.js";
 import shared from "./shared.js";
 import bridge from "./bridge.js";
+import webSupport from "./web-support.js";
+import notifications from "./notifications.js";
+import webHosting from "./web-hosting.js";
+import serverHosting from "./server-hosting.js";
+import focus from "./focus.js";
 
 export const EN: Readonly<Record<string, string>> = Object.freeze({
   ...webApp,
@@ -27,4 +32,9 @@ export const EN: Readonly<Record<string, string>> = Object.freeze({
   ...server,
   ...shared,
   ...bridge,
+  ...webSupport,
+  ...notifications,
+  ...webHosting,
+  ...serverHosting,
+  ...focus,
 });

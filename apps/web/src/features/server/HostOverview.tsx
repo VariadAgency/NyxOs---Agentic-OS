@@ -64,7 +64,7 @@ function Tile({ tile }: { tile: TileSpec }) {
   const color = toneVar(tile.tone);
   const spark = tile.spark && tile.spark.filter((v) => v > 0).length >= 3 ? tile.spark : null;
   return (
-    <Card className="grid min-w-0 content-start gap-1.5" data-tile={tile.key} data-testid={tile.testId}>
+    <Card className="grid min-w-0 content-start gap-1.5" data-tile={tile.key} data-testid={tile.testId} data-equal-row="">
       <span className="flex min-w-0 items-center gap-1.5 font-mono text-label uppercase tracking-wider text-a-mut">
         <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: color }} aria-hidden />
         <span className="min-w-0 [overflow-wrap:anywhere]" data-tile-label>

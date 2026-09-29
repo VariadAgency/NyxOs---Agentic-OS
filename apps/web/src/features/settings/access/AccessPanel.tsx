@@ -182,7 +182,7 @@ export function AccessPanel() {
   }, [location.hash]);
 
   return (
-    <section id={ACCESS_ANCHOR} ref={ref} className="grid scroll-mt-4 gap-2" data-nyx-risk="">
+    <section ref={ref} className="grid scroll-mt-4 gap-2" data-nyx-risk="">
       <SectionTitle>{t("Zugänge")}</SectionTitle>
       <p className="text-callout text-a-mut">{t("Schlüssel und Tokens für Modelle, Telegram und das Ideen-Postfach. Tippe eine Karte an für Infos und Schritte. Gespeichert wird verschlüsselt – angezeigt werden nur die letzten 4 Zeichen.")}</p>
       {access.data && <KeyNotice state={access.data.secretsKey} />}

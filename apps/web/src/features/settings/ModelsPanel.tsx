@@ -8,6 +8,7 @@ import { Button } from "../../components/ui/button";
 import { Skeleton } from "../../components/ui/skeleton";
 import { cn } from "../../lib/cn";
 import { friendlyError } from "../../lib/friendlyError";
+import { splitModelLabel } from "../../lib/modelName";
 import { PROVIDER_COLOR } from "./providerColors";
 import { FIELD, LABEL } from "./fieldStyles";
 import { ModelPicker } from "./ModelPicker";
@@ -52,6 +53,21 @@ function StatusPill({ p }: { p: ProviderView }) {
 
 // ─── Rollen ───
 
+/**
+ * Active model of a role – readable name ("Haiku 4.5") and additions ("denkt gründlich", provider), the route small in
+ * brackets; the exact id only in the tooltip.
+ */
+export function ActiveModelChip({ role, label, model, pill }: { role: string; label: string; model: string; pill: string }) {
+  const { name, extras, note } = splitModelLabel(label, model);
+  return (
+    <span className={cn("inline-flex min-w-0 flex-wrap items-center gap-x-1.5 rounded-full border px-2 py-0.5 text-caption font-medium", pill)} data-testid={`active-${role}`} title={t("Kennung: {model}", { model })}>
+      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" />
+      <span>{[name, ...extras].join(" · ")}</span>
+      {note && <span className="font-normal opacity-75">{" "}({note})</span>}
+    </span>
+  );
+}
+
 function RoleRow({ role, providers }: { role: RoleView; providers: ProviderView[] }) {
   const assign = useAssignRole();
   const usable = providers.filter((p) => p.configured && p.enabled);
@@ -78,10 +94,7 @@ function RoleRow({ role, providers }: { role: RoleView; providers: ProviderView[
     <li className="grid gap-2 rounded-lg px-2 py-2.5 hover:bg-a-p2" data-role={role.role}>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <span className="text-callout font-medium text-a-ink">{role.label}</span>
-        <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-caption font-medium", pill)} data-testid={`active-${role.role}`}>
-          <span className="h-1.5 w-1.5 rounded-full bg-current" />
-          {role.active.label}
-        </span>
+        <ActiveModelChip role={role.role} label={role.active.label} model={role.active.model} pill={pill} />
         {role.fixed && <span className="text-caption text-a-mut">{t("fest – nicht änderbar")}</span>}
       </div>
       <p className="text-caption text-a-mut">{role.hint}</p>
@@ -342,11 +355,9 @@ export function ModelsPanel() {
   const roleOrder = (r: RoleView) => MODEL_ROLES.indexOf(r.role);
 
   return (
-    <section id={MODELS_ANCHOR} className="grid scroll-mt-4 gap-2">
+    <section className="grid scroll-mt-4 gap-2">
       <SectionTitle>{t("Modelle")}</SectionTitle>
-      <p className="text-callout text-a-mut">
-        {t("Welches Modell Nyx für welche Aufgabe nimmt – und welche Anbieter dafür bereitstehen. Ohne Zuordnung bleibt alles beim Standard: Claude Haiku 4.5 (claude-haiku-4-5-20251001) über das Claude-Programm. Schlüssel trägst du oben unter „Zugänge“ ein.")}
-      </p>
+      <p className="text-caption text-a-mut">{t("Standard ist Claude Haiku 4.5 über das Claude-Programm. Schlüssel für andere Anbieter trägst du unter „Zugänge & Schlüssel“ ein.")}</p>
       {providers.data && <KeyNotice state={providers.data.secretsKey} />}
       {(providers.isLoading || roles.isLoading) && <Skeleton className="h-40 w-full" />}
       {(providers.isError || roles.isError) && (

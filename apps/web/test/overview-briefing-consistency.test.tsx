@@ -277,7 +277,7 @@ describe("Einstellung Altersgrenze", () => {
     );
     const user = userEvent.setup();
     renderIn(<SessionStateSettingsPanel />);
-    const input = await screen.findByLabelText(/abgestürzt/i);
+    const input = await screen.findByRole("spinbutton", { name: /Als abgestürzt zählen/i });
     await waitFor(() => expect(input).toHaveValue(12));
     await user.clear(input);
     await user.type(input, "24");

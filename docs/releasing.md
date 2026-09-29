@@ -5,7 +5,7 @@ This page is for maintainers. A release is a GitHub Release with two files: `nyx
 
 ## Before the very first push
 
-The repository ships with the placeholder `OWNER/nyxos` in the installer, the docs, `package.json`
+The repository ships with the placeholder `VariadAgency/NyxOs---Agentic-OS` in the installer, the docs, `package.json`
 (`nyxos.repo`) and `packages/shared/src/app-settings.ts`. Replace it once with your real GitHub repository:
 
 ```bash

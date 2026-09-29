@@ -5,6 +5,7 @@
 // Fenster schmal, klappt die Tastenhilfe ein; wieder breit, ist sie wieder offen.
 import { t } from "@nyxos/shared";
 import { useState, useSyncExternalStore } from "react";
+import { useTouch } from "../../hooks/useMediaQuery";
 import { cn } from "../../lib/cn";
 import type { Control3D } from "./scene3d";
 
@@ -39,6 +40,8 @@ export function Graph3DHelp({ control, onControlChange, onFit }: { control: Cont
     setHelpOpen(!narrow);
   }
   const fly = control === "fly";
+  // Auf dem Handy/iPad gibt es weder Maus noch Tasten – die Hilfe nennt die Finger-Gesten.
+  const touch = useTouch();
   return (
     <div
       data-brain-overlay=""
@@ -81,15 +84,25 @@ export function Graph3DHelp({ control, onControlChange, onFit }: { control: Cont
               : t("Maus ziehen oder zwei Finger: Kugel drehen · Rechts ziehen oder Shift+Ziehen: schieben · Klick: auswählen und hinfliegen · Rad oder Kneifen: zoomen zur Maus · WASD/Pfeile bewegen, Q/E runter/hoch, Shift schneller")
           }
         >
-          <span className="whitespace-nowrap">{fly ? t("Zwei Finger: umschauen") : t("Zwei Finger: drehen")}</span>
-          <span className="whitespace-nowrap">{t("Kneifen: zoomen")}</span>
-          <span className="whitespace-nowrap">{t("Klick: hinfliegen")}</span>
-          <span className="whitespace-nowrap">
-            <Kbd>F</Kbd> {t("alles zeigen")}
-          </span>
-          <span className="whitespace-nowrap">
-            <Kbd>V</Kbd> {fly ? t("umkreisen") : t("fliegen")}
-          </span>
+          {touch ? (
+            <>
+              <span className="whitespace-nowrap">{fly ? t("Ziehen: umschauen") : t("Ziehen: drehen")}</span>
+              <span className="whitespace-nowrap">{t("Zwei Finger: zoomen")}</span>
+              <span className="whitespace-nowrap">{t("Tippen: hinfliegen")}</span>
+            </>
+          ) : (
+            <>
+              <span className="whitespace-nowrap">{fly ? t("Zwei Finger: umschauen") : t("Zwei Finger: drehen")}</span>
+              <span className="whitespace-nowrap">{t("Kneifen: zoomen")}</span>
+              <span className="whitespace-nowrap">{t("Klick: hinfliegen")}</span>
+              <span className="whitespace-nowrap">
+                <Kbd>F</Kbd> {t("alles zeigen")}
+              </span>
+              <span className="whitespace-nowrap">
+                <Kbd>V</Kbd> {fly ? t("umkreisen") : t("fliegen")}
+              </span>
+            </>
+          )}
         </span>
       ) : null}
       <button type="button" onClick={() => setHelpOpen((v) => !v)} aria-expanded={helpOpen} aria-label={helpOpen ? t("Tastenhilfe ausblenden") : t("Tastenhilfe zeigen")} className="shrink-0 rounded px-1 text-label text-a-mut hover:text-a-ink">

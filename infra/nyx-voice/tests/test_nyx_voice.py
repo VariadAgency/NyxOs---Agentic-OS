@@ -139,8 +139,8 @@ class ServiceTests(unittest.TestCase):
 
     def test_env_defaults_and_fake_mode(self) -> None:
         svc = service_from_env({"NYX_FAKE": "1", "NYX_MODELS_DIR": str(self.tmp), "NYX_THREADS": "2"})
-        # Standard ist jetzt die natürlichere Stimme (Pocket „juergen“), thorsten-medium der Rückfall.
-        self.assertEqual((svc.stt.spec.id, svc.default_voice, svc.fallback_voice, svc.threads), (DEFAULT_STT, "pocket-juergen", DEFAULT_TTS, 2))
+        # Default is Thorsten (clear); if Thorsten fails, the next German voice takes over (Jürgen).
+        self.assertEqual((svc.stt.spec.id, svc.default_voice, svc.fallback_voice, svc.threads), (DEFAULT_STT, "de_DE-thorsten-high", DEFAULT_TTS, 2))
         for t in svc.start():
             t.join(timeout=5)
         self.assertTrue(svc.status()["stt"]["ready"] and svc.status()["tts"]["ready"])
