@@ -1,5 +1,5 @@
 # NyxOS server mode: API + web app in one container (see infra/docker-compose.yml).
-FROM node:24-alpine AS build
+FROM node:26-alpine AS build
 WORKDIR /src
 RUN corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
@@ -13,7 +13,7 @@ COPY apps/server apps/server
 COPY apps/web apps/web
 RUN pnpm --filter @nyxos/server run build && pnpm --filter @nyxos/web run build
 
-FROM node:24-alpine
+FROM node:26-alpine
 WORKDIR /app
 ENV NODE_ENV=production PORT=8080 HOST=0.0.0.0 ARCHIVE_DIR=/archive WEB_DIR=/app/web
 COPY --from=build /src/apps/server/dist ./dist

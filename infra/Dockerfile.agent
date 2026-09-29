@@ -2,7 +2,7 @@
 # Die Anmeldung kommt NUR zur Laufzeit aus infra/.env (Compose reicht sie als Umgebung durch) –
 # nie ins Abbild, nie als Bau-Argument. Keine DB, kein Docker-Socket – nur WebSocket zur API
 # (`/haiku-worker`) und HTTP zur MCP-Brücke (`/haiku-mcp`).
-FROM node:24-alpine AS build
+FROM node:26-alpine AS build
 WORKDIR /src
 RUN corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
@@ -15,7 +15,7 @@ RUN pnpm --filter @nyxos/server run build
 
 # glibc-Basis statt Alpine. Das CLI bringt ein natives Programm mit; auf musl bräuchte es
 # Zusatzpakete (libgcc, libstdc++). Arbeiter und MCP-Brücke sind reines JavaScript und laufen überall.
-FROM node:24-bookworm-slim
+FROM node:26-bookworm-slim
 # Offizielles CLI aus npm, FEST versioniert (mit genau dieser Version geprüft).
 # Hochzählen nur bewusst hier, nie automatisch.
 ARG CLAUDE_CODE_VERSION=2.1.282
