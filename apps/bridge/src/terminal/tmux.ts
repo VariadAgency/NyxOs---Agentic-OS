@@ -90,14 +90,16 @@ export class Tmux {
   async listPanes(): Promise<{ name: string; panePid: number; paneId: string }[]> {
     let out: string;
     try {
-      out = await this.run(["list-panes", "-a", "-F", "#{session_name}\t#{pane_pid}\t#{pane_id}"]);
+      // Trenner „|“ statt Tabulator: tmux bis 3.3 (Debian 12, Ubuntu 22.04) gibt Steuerzeichen als „_“ aus –
+      // dann fand die Brücke dort keine einzige Session. Sessionnamen (TMUX_NAME_RE), PIDs und Pane-IDs enthalten kein „|“.
+      out = await this.run(["list-panes", "-a", "-F", "#{session_name}|#{pane_pid}|#{pane_id}"]);
     } catch (e) {
       if (e instanceof TmuxError && e.code !== "failed") return [];
       throw e;
     }
     return out
       .split("\n")
-      .map((l) => l.split("\t"))
+      .map((l) => l.split("|"))
       .filter((p): p is [string, string, string] => p.length === 3 && TMUX_NAME_RE.test(p[0] ?? ""))
       .map(([name, pid, paneId]) => ({ name, panePid: Number(pid), paneId }));
   }

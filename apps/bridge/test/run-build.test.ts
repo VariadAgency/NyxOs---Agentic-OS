@@ -85,7 +85,8 @@ describe("runBuild (Brücke)", () => {
       ["xcodebuild", "-runFirstLaunch"],
       ["xcodebuild", "build", "-project", "/etc/x.xcodeproj", "-scheme", "S", "-destination", "generic/platform=iOS Simulator", "-derivedDataPath", "/tmp/dd"],
     ]) {
-      const r = await runBuild({ command, cwd: p.wt }, { path: p.path, projectRoots: [p.root] });
+      // `platform: "darwin"`: die xcodebuild-Regeln gelten auf dem Mac – so prüft sie auch ein Linux-Rechner.
+      const r = await runBuild({ command, cwd: p.wt }, { path: p.path, projectRoots: [p.root], platform: "darwin" });
       expect(r, command.join(" ")).toMatchObject({ outcome: "unavailable", reason: "not_allowed" });
       expect(r.log).not.toContain("SOLLTE-NIE-LAUFEN");
     }
@@ -108,7 +109,7 @@ describe("runBuild (Brücke)", () => {
     const dd = join(p.root, "cache");
     const r = await runBuild(
       { command: ["xcodebuild", "build", "-project", proj, "-scheme", "Shop App", "-destination", "generic/platform=iOS Simulator", "-derivedDataPath", "/builds/derived-data/abc"], cwd: app },
-      { path: p.path, projectRoots: [p.root], derivedDataRoot: dd },
+      { path: p.path, projectRoots: [p.root], derivedDataRoot: dd, platform: "darwin" },
     );
     expect(r).toMatchObject({ outcome: "done", exitCode: 0 });
     expect(r.log).not.toContain("/builds/derived-data");
@@ -122,7 +123,7 @@ describe("runBuild (Brücke)", () => {
     mkdirSync(app, { recursive: true });
     const r = await runBuild(
       { command: ["xcodebuild", "build", "-project", join(app, "Xcode", "X.xcodeproj"), "-scheme", "S", "-destination", "generic/platform=iOS Simulator", "-derivedDataPath", "/builds/x"], cwd: app },
-      { path: p.path, projectRoots: [p.root], derivedDataRoot: join(p.root, "cache") },
+      { path: p.path, projectRoots: [p.root], derivedDataRoot: join(p.root, "cache"), platform: "darwin" },
     );
     expect(r).toMatchObject({ outcome: "unavailable", reason: "no_project" });
   });

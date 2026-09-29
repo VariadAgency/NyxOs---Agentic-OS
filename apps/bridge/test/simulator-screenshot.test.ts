@@ -20,7 +20,7 @@ describe("simulator_screenshot", () => {
       }
       return { code: 0, stdout: JSON.stringify({ devices: { "com.apple.CoreSimulator.SimRuntime.iOS-26-0": [{ name: "iPhone 17 Pro", state: "Booted" }] } }), stderr: "" };
     };
-    const r = await simulatorScreenshot({ run, xcrun: "/usr/bin/xcrun" });
+    const r = await simulatorScreenshot({ run, xcrun: "/usr/bin/xcrun", platform: "darwin" });
     expect(r).toMatchObject({ ok: true, device: "iPhone 17 Pro", bytes: PNG.length });
     if (r.ok) expect(Buffer.from(r.pngB64, "base64").equals(PNG)).toBe(true);
     expect(calls.some((a) => a.join(" ").startsWith("simctl io booted screenshot"))).toBe(true);
@@ -30,7 +30,7 @@ describe("simulator_screenshot", () => {
   it("kein Simulator an → no_simulator (keine Technik-Meldung)", async () => {
     const run: SimRunner = async (_bin, args) =>
       args.includes("screenshot") ? { code: 164, stdout: "", stderr: "Invalid device: booted\nNo devices are booted." } : { code: 0, stdout: JSON.stringify({ devices: {} }), stderr: "" };
-    const r = await simulatorScreenshot({ run, xcrun: "/usr/bin/xcrun" });
+    const r = await simulatorScreenshot({ run, xcrun: "/usr/bin/xcrun", platform: "darwin" });
     expect(r).toMatchObject({ ok: false, reason: "no_simulator" });
   });
 

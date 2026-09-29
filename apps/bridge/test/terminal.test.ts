@@ -118,6 +118,9 @@ describe("Block in der Shell-Startdatei", () => {
   });
 });
 
+// Ein echtes Terminal setzt immer TERM; ohne (CI-Rechner) verweigert `tmux new-session` den Start.
+const PTY_TERM = process.env.TERM || "xterm-256color";
+
 /** Startet eine zsh in einem Pseudo-Terminal (`script`), damit `tmux new-session` sich anhängen kann. */
 function zshInPty(zshFile: string, cwd: string, command: string, env: Record<string, string>) {
   // Läuft der Test selbst in einer NyxOS-tmux-Session (Agent nach Neustart), darf deren Name nicht durchsickern:
@@ -127,7 +130,7 @@ function zshInPty(zshFile: string, cwd: string, command: string, env: Record<str
   // abgeschnitten werden).
   const rcFile = join(mkdtempSync(join(tmpdir(), "nyxos-p3-rc-")), "rc");
   spawnSync("/usr/bin/script", ["-q", "/dev/null", "/bin/zsh", "-f", "-c", `source '${zshFile}'; cd '${cwd}'; ${command}; print -r -- "rc=$?" > '${rcFile}'`], {
-    env: { ...hostEnv, TMUX: "", ...env },
+    env: { ...hostEnv, TERM: PTY_TERM, TMUX: "", ...env },
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"], // `script` braucht ein stdin ohne Socket
     timeout: 20_000,
@@ -145,7 +148,7 @@ function shellInPty(shellBin: string, shellArgs: string[], fnFile: string, cwd: 
   const rcFile = join(mkdtempSync(join(tmpdir(), "nyxos-p3-rc-")), "rc");
   const script = `source '${fnFile}'; cd '${cwd}'; ${command.replace("RCFILE", `'${rcFile}'`)}`;
   const args = process.platform === "darwin" ? ["-q", "/dev/null", shellBin, ...shellArgs, script] : ["-q", "-e", "-c", [shellBin, ...shellArgs, `'${script.replace(/'/g, `'\\''`)}'`].join(" "), "/dev/null"];
-  spawnSync("/usr/bin/script", args, { env: { ...hostEnv, TMUX: "", ...env }, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 20_000 });
+  spawnSync("/usr/bin/script", args, { env: { ...hostEnv, TERM: PTY_TERM, TMUX: "", ...env }, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 20_000 });
   try {
     return readFileSync(rcFile, "utf8");
   } catch {

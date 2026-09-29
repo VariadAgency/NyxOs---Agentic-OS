@@ -31,6 +31,8 @@ function hangingFs(): FinderFs {
     screenshotsDir: null,
     backupsDir: join(home, "backups"),
     firstAccessTimeoutMs: TIMEOUT_MS,
+    // Die Freigabe-Sperre gibt es nur auf macOS – so prüft sie auch ein Linux-Rechner.
+    platform: "darwin",
     probeDir: async (abs) => {
       if (!abs.endsWith("/Downloads")) return readdir(abs);
       c.probes++;
@@ -58,7 +60,7 @@ async function expectPermissionError(p: Promise<unknown>): Promise<number> {
 beforeEach(() => {
   n = { stats: 0, probes: 0 };
   home = mkdtempSync(join(tmpdir(), "nyxos-p5-"));
-  mkdirSync(join(home, "projekte"), { recursive: true });
+  mkdirSync(join(home, "Projekte"), { recursive: true });
   const dl = join(home, "Downloads");
   mkdirSync(join(dl, "Ordner"), { recursive: true });
   for (let i = 0; i < FILES; i++) writeFileSync(join(dl, `datei-${i}.pdf`), "x");

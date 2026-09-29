@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { IS_MAC } from "../src/platform.js";
 import { resolveRunOptions } from "../src/run-options.js";
 
 /**
@@ -23,7 +24,8 @@ describe("resolveRunOptions (Brücke: --data-dir)", () => {
     expect(cfg.token).toBe("echt");
     // Auch die installierte Brücke scannt Git , sonst nichts Eigenes.
     // Und nur die installierte Brücke liest die echten Limits aus CodexBar (Probe nie).
-    expect(Object.keys(daemonOpts)).toEqual(["git", "codexbar"]);
+    // CodexBar gibt es nur auf dem Mac.
+    expect(Object.keys(daemonOpts)).toEqual(IS_MAC ? ["git", "codexbar"] : ["git"]);
     // Kein Datenverzeichnis angelegt — es wurde keins verlangt.
     expect(existsSync(join(dir, "spool"))).toBe(false);
   });

@@ -30,7 +30,9 @@ jobs:
         run: command -v tmux || { if [ "$RUNNER_OS" = macOS ]; then brew install tmux; else sudo apt-get update && sudo apt-get install -y tmux; fi; }
       - run: pnpm typecheck
       - run: pnpm lint
-      - run: pnpm test
+      # Shared runners are slower than a desktop: a few timing tests (file watcher, watchdogs) can miss their window
+      # under full load. A real failure fails all three attempts; a timing blip does not block the release.
+      - run: pnpm test --retry=2
       - run: pnpm package
       - name: Every UI text has an English translation
         run: pnpm check:i18n

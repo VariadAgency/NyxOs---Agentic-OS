@@ -2,7 +2,7 @@
 // NyxOS holen. Gegen ein ECHTES tmux auf einem eigenen Wegwerf-Socket je Test (nie `-L nyxos`).
 // Das „alte Fenster“ ist ein echter, harmloser Prozess (`sleep`), den dieser Test selbst startet.
 import { spawn, type ChildProcess } from "node:child_process";
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Tool } from "@nyxos/shared";
@@ -88,10 +88,26 @@ function setup(
 }
 
 /** Das „alte Fenster“: ein echter Prozess außerhalb der NyxOS, der für `ps` wie `claude` heißt (argv0). */
+/**
+ * `sleep`, das für `ps` so heißt wie das Werkzeug. macOS zeigt argv[0]; Linux zeigt immer den Namen der
+ * ausgeführten Datei – dort braucht es eine Kopie mit diesem Namen (das echte Claude heißt dort „claude“).
+ */
+const namedBins = realpathSync(mkdtempSync(join(tmpdir(), "nyxos-d2-bin-")));
+function sleepAs(name: string): string {
+  if (process.platform !== "linux") return "/bin/sleep";
+  const f = join(namedBins, name);
+  if (!existsSync(f)) {
+    copyFileSync("/bin/sleep", f);
+    chmodSync(f, 0o755);
+  }
+  return f;
+}
+
 function oldWindow(ignoreTerm = false, name = "claude"): ChildProcess {
+  const bin = sleepAs(name);
   const c = ignoreTerm
-    ? spawn("/bin/bash", ["-c", `trap '' TERM; exec -a ${name} /bin/sleep 60`], { stdio: "ignore" })
-    : spawn("/bin/sleep", ["60"], { stdio: "ignore", argv0: name });
+    ? spawn("/bin/bash", ["-c", `trap '' TERM; exec -a ${name} ${bin} 60`], { stdio: "ignore" })
+    : spawn(bin, ["60"], { stdio: "ignore", argv0: name });
   children.push(c);
   return c;
 }

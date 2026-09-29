@@ -152,7 +152,8 @@ describe("Zugangsdaten und Rechner-Last", () => {
       `#!/bin/sh\nmkdir "${lock}/$$"\nn=$(ls "${lock}" | wc -l | tr -d ' ')\necho "$n" >> "${home}/sips-max"\nsleep 0.3\nfor a; do out="$a"; done\nprintf 'JPG' > "$out"\nrmdir "${lock}/$$"\n`,
       { mode: 0o755 },
     );
-    const f = new FinderFs({ projectRoots: [project], home, screenshotsDir: null, backupsDir: backups, sipsBin: sips });
+    // sips (Vorschaubilder) nur auf macOS – `platform` lässt die Grenze auch auf Linux prüfen.
+    const f = new FinderFs({ projectRoots: [project], home, screenshotsDir: null, backupsDir: backups, sipsBin: sips, platform: "darwin" });
     for (let i = 0; i < 6; i++) writeFileSync(join(project, `b${i}.png`), Buffer.from([0x89, 0x50, i]));
     const out = await Promise.all(Array.from({ length: 6 }, (_, i) => f.handle({ op: "thumb", root: "project", rel: `b${i}.png`, size: 64 })));
     expect(out).toHaveLength(6);

@@ -7,14 +7,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-### Fixed
-
-- **Installer finds the latest version without the GitHub API** — it reads the version from the release's
-  `SHA256SUMS` behind the "latest" download link, which has no request limit (the API allows only 60 requests per
-  hour and address without sign-in, which shared addresses in offices or mobile networks use up). The API stays as
-  fallback. If both fail, the clear message "Could not find the latest version" now appears instead of a bare
-  curl error.
-
 ## [0.1.0] - 2026-09-29
 
 First public release.
@@ -234,6 +226,14 @@ First public release.
 
 ### Fixed
 
+- **Terminal sessions on Linux with older tmux** — tmux up to 3.3 (Debian 12, Ubuntu 22.04) prints tabs in its
+  output as `_`, so the bridge found no terminal session at all there (no live terminal, no "resume"/"take over"
+  protection). It now separates the fields with `|`.
+- **Installer finds the latest version without the GitHub API** — it reads the version from the release's
+  `SHA256SUMS` behind the "latest" download link, which has no request limit (the API allows only 60 requests per
+  hour and address without sign-in, which shared addresses in offices or mobile networks use up). The API stays as
+  fallback. If both fail, the clear message "Could not find the latest version" now appears instead of a bare
+  curl error.
 - The context guard no longer sends the same notice two or three times in the same second (ticker and ingest
   raced; the mark is now claimed atomically before sending).
 - Sub-agents of a session (rows with `parent_id`, e.g. Codex workers) no longer trigger „waiting“, „done“ or
